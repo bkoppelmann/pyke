@@ -10,3 +10,6 @@ compile: $(gen_dir)/Pyke.v
 
 $(gen_dir)/Pyke.v: $(wildcard $(src_dir)/scala/*.scala)
 	$(SBT) $(SBT_FLAGS) "run $(gen_dir)"
+
+clean:
+	rm -rf $(gen_dir)/*
