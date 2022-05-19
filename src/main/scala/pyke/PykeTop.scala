@@ -15,8 +15,8 @@ class PykeTop extends Module {
   })
 
   val cpu = Module(new PykeCore)
-  val imem = Module(new ScratchPad(1000, 0x80000000L, false))
-  val dmem = Module(new ScratchPad(1000, 0xa0000000L, true))
+  val imem = Module(new ScratchPad(1000, 32, 0x80000000L, false))
+  val dmem = Module(new ScratchPad(1000, 32, 0xa0000000L, true))
 
   cpu.io.imem <> imem.io
   cpu.io.dmem <> dmem.io

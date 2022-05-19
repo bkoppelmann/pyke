@@ -11,19 +11,19 @@ class ScratchPadRequest extends Bundle {
   val valid: Bool = Input(Bool())
 }
 
-class ScratchPadResponse extends Bundle {
-  val data: UInt = Output(UInt(32.W))
+class ScratchPadResponse(dWidth:Int) extends Bundle {
+  val data: UInt = Output(UInt(dWidth.W))
   val rdy: Bool = Output(Bool())
 }
 
-class ScratchPadPort extends Bundle {
+class ScratchPadPort(dWidth:Int) extends Bundle {
   val req = new ScratchPadRequest
-  val resp = new ScratchPadResponse
+  val resp = new ScratchPadResponse(dWidth)
   val succ: UInt = Output(UInt(2.W))
 }
 
-class ScratchPad(size:Int, addr_offset:BigInt, wr_mask:Boolean) extends Module {
-  val io: ScratchPadPort = IO(new ScratchPadPort)
+class ScratchPad(size:Int, dWidth:Int, addr_offset:BigInt, wr_mask:Boolean) extends Module {
+  val io: ScratchPadPort = IO(new ScratchPadPort(dWidth))
 
   val masked_mem = Mem(size, Vec(4, UInt(8.W)))
   val nonmasked = Mem(size, UInt(32.W))
