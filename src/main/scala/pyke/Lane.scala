@@ -24,6 +24,9 @@ class Lane extends Module {
   val rs1_addr = io.insn(11,8)
   val rs2_addr = io.insn(15,12)
 
+  // Decode
+  decoder.io.insn := io.insn
+
   // RF access
   rf.io.r_addr1 := rs1_addr
   rf.io.r_addr2 := rs2_addr

@@ -16,7 +16,7 @@ class PykeCore extends Module {
 
   val lane0 = Module(new Lane)
   val lane1 = Module(new Lane)
- 
+
   val pc = RegInit(0x80000000L.U(32.W))
   val pc_next = pc + 4.U
 
@@ -29,13 +29,17 @@ class PykeCore extends Module {
   io.imem.req.wr_mask := DontCare
   io.imem.req.data    := DontCare
 
-  /* 
+  /*
    * decode
    */
   val insn = Mux(io.imem.resp.rdy, io.imem.resp.data, NOP)
   lane0.io.insn := insn(15,0)  // lane 0
-  lane1.io.insn := insn(31,16) // lane 1
+  lane0.io.pc   := pc
+  lane0.io.pc_next := pc_next
 
+  lane1.io.insn := insn(31,16) // lane 1
+  lane1.io.pc   := pc
+  lane1.io.pc_next := pc_next
 
 
   io.dmem := DontCare

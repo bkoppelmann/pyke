@@ -26,7 +26,7 @@ class ALUSimple extends Module {
             ALU_XOR  -> (io.in1 ^ io.in2),
             ALU_SLT  -> (io.in1.asSInt() < io.in2.asSInt()).asUInt(),
             ALU_SLTU -> (io.in1 < io.in2),
-            ALU_SLL  -> (io.in1 << shamt)(31, 0),
+            ALU_SLL  -> (io.in1 << shamt)(15, 0),
             ALU_SRL  -> (io.in1 >> shamt),
             ALU_SRA  -> (io.in1.asSInt() >> shamt).asUInt()
           ))
