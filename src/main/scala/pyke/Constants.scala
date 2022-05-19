@@ -95,7 +95,7 @@ trait CSRCommands {
 
 
 trait InsnConstants {
-  val NOP: UInt = 0x4033.U(32.W) // this is xor x0, x0, x0. The compiler emits
+  val NOP: UInt = 0x0.U(32.W)    // this is xor x0, x0, x0. The compiler emits
                                  // add x0, x0, x0 which allows us to
                                  // easily identify NOPs inserted by the core
 }
