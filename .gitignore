@@ -346,3 +346,4 @@ project/metals.sbt
 
 # generated verilog
 generated-src/*
+sim/*
