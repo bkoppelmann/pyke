@@ -36,11 +36,11 @@ class PykeCore extends Module {
   lane0.io.insn := insn(15,0)  // lane 0
   lane0.io.pc   := pc
   lane0.io.pc_next := pc_next
+  lane0.io.dmem <> io.dmem
 
   lane1.io.insn := insn(31,16) // lane 1
   lane1.io.pc   := pc
   lane1.io.pc_next := pc_next
-
-
-  io.dmem := DontCare
+  lane1.io.dmem <> io.dmem
+  //io.dmem := DontCare
 }

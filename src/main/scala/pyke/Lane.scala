@@ -3,12 +3,15 @@ package pyke
 import chisel3._
 import chisel3.util._
 
+import soc.ScratchPadPort
+
 import Constants._
 
 class LaneIO extends Bundle {
   val insn = Input(UInt(16.W))
   val pc = Input(UInt(16.W))
   val pc_next = Input(UInt(16.W))
+  val dmem = Flipped(new ScratchPadPort(32))
 }
 
 class Lane extends Module {
@@ -19,6 +22,7 @@ class Lane extends Module {
 
   val rf = Module(new RegisterFile)
   val alu = Module(new ALUSimple)
+  val lsu = Module(new LoadStoreUnit)
 
   val rd_addr  = io.insn(7,4)
   val rs1_addr = io.insn(11,8)
@@ -54,11 +58,18 @@ class Lane extends Module {
   alu.io.in2 := inp2
   alu.io.op := ctrl.alu_op
 
+  // MEM
+  lsu.io.dmem <> io.dmem
+  lsu.io.en := (ctrl.mem_op =/= MEM_X)
+  lsu.io.wr := (ctrl.mem_op === MEM_STORE)
+  lsu.io.addr := (alu.io.out)
+  lsu.io.wr_data := rs2
+
   // WB
   val wb = MuxCase(0.U,
                 Seq(
                   (ctrl.wb_sel === WB_ALU) -> alu.io.out,
-                  (ctrl.wb_sel === WB_MEM) -> 0.U,
+                  (ctrl.wb_sel === WB_MEM) -> lsu.io.r_data,
                   (ctrl.wb_sel === WB_PC4) -> io.pc_next,
                 ))
   rf.io.wr_addr := rd_addr
