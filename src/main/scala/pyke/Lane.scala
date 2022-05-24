@@ -9,12 +9,13 @@ import Constants._
 
 class LaneIO extends Bundle {
   val insn = Input(UInt(16.W))
-  val pc = Input(UInt(16.W))
-  val pc_next = Input(UInt(16.W))
+  val pc = Input(UInt(32.W))
+  val pc_plus4 = Input(UInt(32.W))
+  val pc_next = Output(UInt(32.W))
   val dmem = Flipped(new ScratchPadPort(32))
 }
 
-class Lane extends Module {
+class Lane(has_bru:Boolean) extends Module {
   val io = IO(new LaneIO)
 
   val decoder = Module(new Decoder)
@@ -23,6 +24,7 @@ class Lane extends Module {
   val rf = Module(new RegisterFile)
   val alu = Module(new ALUSimple)
   val lsu = Module(new LoadStoreUnit)
+
 
   val rd_addr  = io.insn(7,4)
   val rs1_addr = io.insn(11,8)
@@ -57,6 +59,20 @@ class Lane extends Module {
       ))
   alu.io.in2 := inp2
   alu.io.op := ctrl.alu_op
+
+  if (has_bru) {
+    val bru = Module(new BranchUnit)
+    io.pc_next := Mux(ctrl.br =/= BR_N, bru.io.out, io.pc_plus4)
+
+    bru.io.br_target := io.pc + io.insn(7,4)
+    bru.io.jal_target := rs1 + io.insn(15,12)
+    bru.io.rs1 := rs1
+    bru.io.rs2 := rs2
+    bru.io.pc_plus4 := io.pc_plus4
+    bru.io.ctrl := ctrl.br
+  } else {
+    io.pc_next := DontCare
+  }
 
   // MEM
   lsu.io.dmem <> io.dmem

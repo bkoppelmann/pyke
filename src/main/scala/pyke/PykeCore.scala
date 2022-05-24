@@ -14,11 +14,14 @@ class CoreIO extends Bundle {
 class PykeCore extends Module {
   val io: CoreIO = IO(new CoreIO())
 
-  val lane0 = Module(new Lane)
-  val lane1 = Module(new Lane)
+  val lane0 = Module(new Lane(true))
+  val lane1 = Module(new Lane(false))
 
   val pc = RegInit(0x80000000L.U(32.W))
-  val pc_next = pc + 4.U
+  val pc_plus4 = pc + 4.U
+
+  // branch logic
+  pc := lane0.io.pc_next
 
  /*
   * fetch
@@ -35,12 +38,12 @@ class PykeCore extends Module {
   val insn = Mux(io.imem.resp.rdy, io.imem.resp.data, NOP)
   lane0.io.insn := insn(15,0)  // lane 0
   lane0.io.pc   := pc
-  lane0.io.pc_next := pc_next
+  lane0.io.pc_plus4 := pc_plus4
   lane0.io.dmem <> io.dmem
 
   lane1.io.insn := insn(31,16) // lane 1
   lane1.io.pc   := pc
-  lane1.io.pc_next := pc_next
+  lane1.io.pc_plus4 := pc_plus4
   lane1.io.dmem <> io.dmem
   //io.dmem := DontCare
 }
