@@ -53,9 +53,7 @@ class Lane(has_bru:Boolean) extends Module {
   val inp2 = MuxLookup(ctrl.op2_sel, 0.U,
     Seq(
       OP2_RS2   -> rs2,
-      OP2_IMM_I -> 0.U,
-      OP2_IMM_U -> 0.U,
-      OP2_IMM_S -> 0.U
+      OP2_IMM_I -> rs2_addr,
       ))
   alu.io.in2 := inp2
   alu.io.op := ctrl.alu_op
