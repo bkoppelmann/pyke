@@ -3,6 +3,7 @@
 #include "verilated_vcd_c.h"
 #endif
 #include "verilated.h"
+#include "verilated_vpi.h"
 #include <iostream>
 #include <fcntl.h>
 #include <signal.h>
@@ -22,7 +23,24 @@ double sc_time_stamp()
   return trace_count;
 }
 
-void preload_imem(VTop *top, char* path)
+void cycle_clock(VTop *top, VerilatedVcdC *tfp)
+{
+    top->clock=1;
+    top->eval();
+    trace_count++;
+#ifdef VM_TRACE
+    tfp->dump(static_cast<vluint64_t>(trace_count));
+#endif
+    top->clock=0;
+    top->eval();
+    trace_count++;
+#ifdef VM_TRACE
+    tfp->dump(static_cast<vluint64_t>(trace_count));
+#endif
+
+}
+
+void preload_imem(VTop *top, VerilatedVcdC *tfp, char* path)
 {
     FILE *f = fopen(path, "r");
     char *line = NULL;
@@ -34,10 +52,18 @@ void preload_imem(VTop *top, char* path)
         printf("Cannot read '%s' file does not exist\n", path);
     }
 
+    top->io_debug_fetch_en = 0;
+    top->io_debug_imem_addr = 0x80000000;
+    top->clock = 0;
+    top->eval();
+
     while ((read = getline(&line, &len, f)) != -1) {
-//        top->PykeTop__DOT__imem__DOT__nonmasked[i] = strtol(line, NULL, 16);
-        i++;
+        top->io_debug_imem_addr += 1;
+        top->io_debug_imem_val = strtol(line, NULL, 16);
+        cycle_clock(top, tfp);
     }
+    top->io_debug_fetch_en = 1;
+
     fclose(f);
 }
 
@@ -61,6 +87,7 @@ void preload_dmem(VTop *top, char* path)
         printf("Cannot read '%s' file does not exist\n", path);
     }
 
+
     while ((read = getline(&line, &len, f)) != -1) {
         write_dmem_word(top, i, strtol(line, NULL, 16));
         i++;
@@ -81,7 +108,7 @@ void parse_args(VTop *top, ,int argc, char **argv)
             printf("\n------------------------\n");
             printf("Running %s\n", optarg);
             printf("------------------------\n\n");
-            preload_imem(top, optarg);
+            preload_imem(top, tfp, optarg);
             break;
         case 'd':
             preload_dmem(top, optarg);
@@ -101,22 +128,6 @@ void parse_args(VTop *top, ,int argc, char **argv)
     }
 }
 
-void cycle_clock(VTop *top, VerilatedVcdC *tfp)
-{
-    top->clock=1;
-    top->eval();
-    trace_count++;
-#ifdef VM_TRACE
-    tfp->dump(static_cast<vluint64_t>(trace_count));
-#endif
-    top->clock=0;
-    top->eval();
-    trace_count++;
-#ifdef VM_TRACE
-    tfp->dump(static_cast<vluint64_t>(trace_count));
-#endif
-
-}
 
 void reset(VTop *top, VerilatedVcdC *tfp)
 {

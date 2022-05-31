@@ -9,6 +9,7 @@ import Constants._
 class CoreIO extends Bundle {
   val imem = Flipped(new ScratchPadPort(32))
   val dmem = Flipped(new ScratchPadPort(32))
+  val fetch_en = Input(Bool())
 }
 
 class PykeCore extends Module {
@@ -33,17 +34,16 @@ class PykeCore extends Module {
   io.imem.req.data    := DontCare
 
   /*
-   * decode
+   * Lanes
    */
   val insn = Mux(io.imem.resp.rdy, io.imem.resp.data, NOP)
-  lane0.io.insn := insn(15,0)  // lane 0
+  lane0.io.insn := Mux(!io.fetch_en, NOP, insn(15,0))  // lane 0
   lane0.io.pc   := pc
-  lane0.io.pc_plus4 := pc_plus4
+  lane0.io.pc_plus4 := Mux(!io.fetch_en, pc, pc_plus4)
   lane0.io.dmem <> io.dmem
 
-  lane1.io.insn := insn(31,16) // lane 1
+  lane1.io.insn := Mux(!io.fetch_en, NOP, insn(31,16)) // lane 1
   lane1.io.pc   := pc
   lane1.io.pc_plus4 := pc_plus4
   lane1.io.dmem <> io.dmem
-  //io.dmem := DontCare
 }
