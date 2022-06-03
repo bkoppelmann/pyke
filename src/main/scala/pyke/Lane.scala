@@ -13,6 +13,8 @@ class LaneIO extends Bundle {
   val pc_plus4 = Input(UInt(32.W))
   val pc_next = Output(UInt(32.W))
   val dmem = Flipped(new ScratchPadPort(32))
+  val rfReadPorts = Flipped(Vec(2, new RFReadPortIO(16, 4)))
+  val rfWritePort = Flipped(new RFWritePortIO(16, 4))
 }
 
 class Lane(has_bru:Boolean) extends Module {
@@ -21,10 +23,8 @@ class Lane(has_bru:Boolean) extends Module {
   val decoder = Module(new Decoder)
   val ctrl = decoder.io.ctrl
 
-  val rf = Module(new RegisterFile)
   val alu = Module(new ALUSimple)
   val lsu = Module(new LoadStoreUnit)
-
 
   val rd_addr  = io.insn(7,4)
   val rs1_addr = io.insn(11,8)
@@ -34,12 +34,14 @@ class Lane(has_bru:Boolean) extends Module {
   decoder.io.insn := io.insn
 
   // RF access
-  rf.io.r_addr1 := rs1_addr
-  rf.io.r_addr2 := rs2_addr
-  rf.io.en      := (ctrl.op1_sel === OP1_RS1 || ctrl.op2_sel === OP2_RS2)
+  io.rfReadPorts(0).addr := rs1_addr
+  io.rfReadPorts(1).addr := rs2_addr
 
-  val rs1 = rf.io.r_data1
-  val rs2 = rf.io.r_data2
+  io.rfReadPorts(0).en      := (ctrl.op1_sel === OP1_RS1 || ctrl.op2_sel === OP2_RS2)
+  io.rfReadPorts(1).en      := (ctrl.op1_sel === OP1_RS1 || ctrl.op2_sel === OP2_RS2)
+
+  val rs1 = io.rfReadPorts(0).data
+  val rs2 = io.rfReadPorts(1).data
 
   // Execute
   val inp1 = MuxLookup(ctrl.op1_sel, 0.U,
@@ -86,8 +88,8 @@ class Lane(has_bru:Boolean) extends Module {
                   (ctrl.wb_sel === WB_MEM) -> lsu.io.r_data,
                   (ctrl.wb_sel === WB_PC4) -> io.pc_next,
                 ))
-  rf.io.wr_addr := rd_addr
-  rf.io.wr_data := wb
-  rf.io.wen := ctrl.wr_reg
 
+  io.rfWritePort.addr := rd_addr
+  io.rfWritePort.data := wb
+  io.rfWritePort.en   := ctrl.wr_reg
 }
