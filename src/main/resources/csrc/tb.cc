@@ -95,6 +95,8 @@ void preload_dmem(VTop *top, char* path)
     fclose(f);
 }
 
+char *imem_path = NULL;
+
 #ifdef VM_TRACE
 void parse_args(VTop *top, VerilatedVcdC *tfp, int argc, char **argv)
 #else
@@ -106,9 +108,10 @@ void parse_args(VTop *top, ,int argc, char **argv)
         switch(opt) {
         case 'i':
             printf("\n------------------------\n");
-            printf("Running %s\n", optarg);
+            printf("Preloading Imem from %s\n", optarg);
             printf("------------------------\n\n");
-            preload_imem(top, tfp, optarg);
+            imem_path = (char*)malloc(256*sizeof(char));
+            strcpy(imem_path, optarg);
             break;
         case 'd':
             preload_dmem(top, optarg);
@@ -168,6 +171,9 @@ int main(int argc, char **argv)
 #else
     parse_args(top, argc, argv);
 #endif
+    if (imem_path != NULL) {
+        preload_imem(top, tfp, imem_path);
+    }
 
     reset(top, tfp);
 
