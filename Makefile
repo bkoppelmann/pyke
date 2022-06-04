@@ -39,3 +39,5 @@ $(EMULATOR): $(VERILOG_TOP) $(TB)
 clean:
 	rm -rf $(GEN_DIR)/*
 	rm -rf $(SIM_DIR)/*
+
+include $(BASE_DIR)/sw/tests.mk
