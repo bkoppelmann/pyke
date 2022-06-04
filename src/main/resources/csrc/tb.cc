@@ -53,13 +53,13 @@ void preload_imem(VTop *top, VerilatedVcdC *tfp, char* path)
     }
 
     top->io_debug_fetch_en = 0;
-    top->io_debug_imem_addr = 0x80000000;
-    top->clock = 0;
-    top->eval();
+    top->io_debug_imem_addr = 0x8000;
+    cycle_clock(top, tfp);
 
     while ((read = getline(&line, &len, f)) != -1) {
         top->io_debug_imem_addr += 1;
         top->io_debug_imem_val = strtol(line, NULL, 16);
+        printf("Loading addr 0x%x with 0x%x\n", top->io_debug_imem_addr, top->io_debug_imem_val);
         cycle_clock(top, tfp);
     }
     top->io_debug_fetch_en = 1;

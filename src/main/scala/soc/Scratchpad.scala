@@ -28,7 +28,7 @@ class ScratchPad(size:Int, dWidth:Int, addr_offset:BigInt, wr_mask:Boolean) exte
   val masked_mem = Mem(size, Vec(4, UInt(8.W)))
   val nonmasked = Mem(size, UInt(32.W))
 
-  val addr = io.req.addr - addr_offset.U
+  val addr = (io.req.addr - addr_offset.U)(15,0)
 
   val dataIn = Wire(Vec(4, UInt(8.W)))
   dataIn(0) := io.req.data(7,0)
