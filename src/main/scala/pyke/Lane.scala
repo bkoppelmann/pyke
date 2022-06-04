@@ -17,18 +17,18 @@ class LaneIO extends Bundle {
   val rfWritePort = Flipped(new RFWritePortIO(16, 4))
 }
 
-class Lane(has_bru:Boolean) extends Module {
+class Lane(has_bru:Boolean, has_lsu:Boolean) extends Module {
   val io = IO(new LaneIO)
 
   val decoder = Module(new Decoder)
   val ctrl = decoder.io.ctrl
 
   val alu = Module(new ALUSimple)
-  val lsu = Module(new LoadStoreUnit)
 
   val rd_addr  = io.insn(7,4)
   val rs1_addr = io.insn(11,8)
   val rs2_addr = io.insn(15,12)
+  val s_imm = rd_addr
 
   // Decode
   decoder.io.insn := io.insn
@@ -56,6 +56,7 @@ class Lane(has_bru:Boolean) extends Module {
     Seq(
       OP2_RS2   -> rs2,
       OP2_IMM_I -> rs2_addr,
+      OP2_IMM_S -> s_imm,
       ))
   alu.io.in2 := inp2
   alu.io.op := ctrl.alu_op
@@ -75,17 +76,25 @@ class Lane(has_bru:Boolean) extends Module {
   }
 
   // MEM
-  lsu.io.dmem <> io.dmem
-  lsu.io.en := (ctrl.mem_op =/= MEM_X)
-  lsu.io.wr := (ctrl.mem_op === MEM_STORE)
-  lsu.io.addr := (alu.io.out)
-  lsu.io.wr_data := rs2
+  val lsu_data = Wire(UInt(16.W))
 
+  if (has_lsu) {
+    val lsu = Module(new LoadStoreUnit)
+    lsu.io.dmem <> io.dmem
+    lsu.io.en := (ctrl.mem_op =/= MEM_X)
+    lsu.io.wr := (ctrl.mem_op === MEM_STORE)
+    lsu.io.addr := alu.io.out
+    lsu.io.wr_data := rs2
+    lsu_data := lsu.io.r_data
+  } else {
+    io.dmem := DontCare
+    lsu_data := 0.U
+  }
   // WB
   val wb = MuxCase(0.U,
                 Seq(
                   (ctrl.wb_sel === WB_ALU) -> alu.io.out,
-                  (ctrl.wb_sel === WB_MEM) -> lsu.io.r_data,
+                  (ctrl.wb_sel === WB_MEM) -> lsu_data,
                   (ctrl.wb_sel === WB_PC4) -> io.pc_next,
                 ))
 

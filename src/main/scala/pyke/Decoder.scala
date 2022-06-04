@@ -27,19 +27,19 @@ class DecoderIO extends Bundle {
 class Decoder extends Module {
   val io = IO(new DecoderIO)
 
-  val ctrlSignals = ListLookup(io.insn, 
+  val ctrlSignals = ListLookup(io.insn,
                  //                OP1                         writeback en
                // valid           |                            |        mem operation
                //   |  branch     |       OP2        ALU_OP    | writeback |       mem size
-               //   |   type      |        |           |       |  select   |         |  
-               //   |    |        |        |           |       |    |      |         |      
+               //   |   type      |        |           |       |  select   |         |
+               //   |    |        |        |           |       |    |      |         |
 /* default ->*/List(N, BR_N,    OP1_X,    OP2_X,     ALU_X,    N, WB_X  , MEM_X,     0.U),
   Array(
       ADD   -> List(Y, BR_N,    OP1_RS1,  OP2_RS2,   ALU_ADD,  Y, WB_ALU, MEM_X,     0.U),
       ADDI  -> List(Y, BR_N,    OP1_RS1,  OP2_IMM_I, ALU_ADD,  Y, WB_ALU, MEM_X,     0.U),
       SUB   -> List(Y, BR_N,    OP1_RS1,  OP2_RS2,   ALU_SUB,  Y, WB_ALU, MEM_X,     0.U),
       LW    -> List(Y, BR_N,    OP1_RS1,  OP2_IMM_I, ALU_ADD,  Y, WB_ALU, MEM_LOAD,  WORD),
-      SW    -> List(Y, BR_N,    OP1_RS1,  OP2_IMM_I, ALU_ADD,  N, WB_X,   MEM_STORE, WORD),
+      SW    -> List(Y, BR_N,    OP1_RS1,  OP2_IMM_S, ALU_ADD,  N, WB_X,   MEM_STORE, WORD),
       SLL   -> List(Y, BR_N,    OP1_RS1,  OP2_RS2,   ALU_SLL,  Y, WB_ALU, MEM_X,     0.U),
       SRL   -> List(Y, BR_N,    OP1_RS1,  OP2_RS2,   ALU_SRL,  Y, WB_ALU, MEM_X,     0.U),
       SRA   -> List(Y, BR_N,    OP1_RS1,  OP2_RS2,   ALU_SRA,  Y, WB_ALU, MEM_X,     0.U),

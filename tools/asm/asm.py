@@ -3,10 +3,11 @@ import sys
 import argparse
 
 rrr_insn = ['add', 'sub', 'sll', 'srl', 'sra', 'xor', 'and', 'or', 'beq']
-rri_insn = ['addi', 'lw', 'sw']
+rri_insn = ['addi', 'lw']
+rrs_insn = ['sw']
 rr_insn  = ['jr']
 
-instructions = rrr_insn + rri_insn + rr_insn
+instructions = rrr_insn + rri_insn + rr_insn + rrs_insn
 
 start_addr = 0
 linenum = 0
@@ -66,6 +67,10 @@ class Instruction:
             print_error("Invalid imm '{}'".format(self.imm))
         return self.imm << 12
 
+    def encode_simm(self):
+        if self.imm > 15 or self.imm < 0:
+            print_error("Invalid imm '{}'".format(self.imm))
+        return self.imm << 4
 
 
 
@@ -89,6 +94,18 @@ class RRIInstruction(Instruction):
 
     def encode(self):
         return self.encode_op() | self.encode_dst() | self.encode_rs1() | self.encode_imm()
+
+class RRSInstruction(Instruction):
+    def __init__(self, op, source, base, imm):
+        self.op = op
+        self.rs1 = base
+        self.rs2 = source
+        self.imm = imm
+
+    def encode(self):
+        return self.encode_op() | self.encode_simm() | self.encode_rs1() | self.encode_rs2()
+
+
 
 class RRInstruction(Instruction):
     def __init__(self, op, dst, rs1):
@@ -148,7 +165,7 @@ def parse_imm(tok):
     print_error("Expected immediate, got '{}'".format(tok))
 
 def parse_instruction(toks, tid, t, insns):
-    global rrr_insn, rri_insn, rr_insn
+    global rrr_insn, rri_insn, rr_insn, rrs_insn
 
     if t in rrr_insn:
         dst = parse_reg(toks[tid+1])
@@ -163,6 +180,13 @@ def parse_instruction(toks, tid, t, insns):
         imm = parse_imm(toks[tid+3])
         insns.append(RRIInstruction(t, dst, rs1, imm))
         print("Found insn '{}' with args x{} x{} #{}".format(t, dst, rs1, imm))
+        return 4
+    elif t in rrs_insn:
+        source = parse_reg(toks[tid+1])
+        base = parse_reg(toks[tid+2])
+        imm = parse_imm(toks[tid+3])
+        insns.append(RRSInstruction(t, source, base, imm))
+        print("Found insn '{}' with args x{} x{} #{}".format(t, source, base, imm))
         return 4
     elif t in rr_insn:
         dst = parse_reg(toks[tid+1])
