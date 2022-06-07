@@ -19,7 +19,7 @@ class PykeCore extends Module {
   val lane0 = Module(new Lane(true, false))
   val lane1 = Module(new Lane(false, true))
 
-  val pc = RegInit(0x80000000L.U(32.W))
+  val pc = RegInit(0x8000L.U(32.W))
   val pc_plus4 = pc + 4.U
 
   // branch logic

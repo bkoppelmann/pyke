@@ -19,7 +19,7 @@ class DebugModule() extends Module {
 
     io.cpu_fetch_en := io.off.fetch_en
 
-    io.imem.req.addr      := io.off.imem_addr
+    io.imem.req.addr      := io.off.imem_addr(31,2)
     io.imem.req.valid     := true.B
     io.imem.req.wr        := true.B
     io.imem.req.wr_mask   := Seq(true.B, true.B, true.B, true.B)

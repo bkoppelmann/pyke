@@ -57,9 +57,8 @@ void preload_imem(VTop *top, VerilatedVcdC *tfp, char* path)
     cycle_clock(top, tfp);
 
     while ((read = getline(&line, &len, f)) != -1) {
-        top->io_debug_imem_addr += 1;
+        top->io_debug_imem_addr += 4;
         top->io_debug_imem_val = strtol(line, NULL, 16);
-        printf("Loading addr 0x%x with 0x%x\n", top->io_debug_imem_addr, top->io_debug_imem_val);
         cycle_clock(top, tfp);
     }
     top->io_debug_fetch_en = 1;
@@ -182,6 +181,7 @@ int main(int argc, char **argv)
         cycle_clock(top, tfp);
         if (top->io_success == 2) {
             exit_code = 0;
+            printf("Success: %s\n", imem_path);
             goto early_exit;
         } else if (top->io_success == 1) {
             printf("Failed!\n");

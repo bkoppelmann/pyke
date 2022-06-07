@@ -13,5 +13,6 @@ start:
     sll  %12 %1 %5    | addi %6 %0 $13
     addi %12 %12 $7   | add %3 %1 %2
     add %10 %10 %12   | sll %11 %5 %6 # create 999 | create 0xa000
+    sll %10 %10 %2    | addi %0 %0 $0
     add %10 %10 %11   | addi %0 %0 $0
     jr %0 :start      | sw %2 %10 $0
