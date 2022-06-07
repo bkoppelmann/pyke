@@ -2,19 +2,20 @@
 import sys
 import argparse
 
-rrr_insn = ['add', 'sub', 'sll', 'srl', 'sra', 'xor', 'and', 'or', 'beq']
-rri_insn = ['addi', 'lw']
+rrr_insn = ['add', 'sub', 'sll', 'srl', 'sra', 'xor', 'and', 'or']
+rri_insn = ['addi', 'slli', 'lw']
 rrs_insn = ['sw']
+br_insn = ['bne', 'beq']
 rr_insn  = ['jr']
 
-instructions = rrr_insn + rri_insn + rr_insn + rrs_insn
+instructions = rrr_insn + rri_insn + rr_insn + rrs_insn + br_insn
 
-start_addr = 0
+current_addr = 0
 linenum = 0
 charnum = 0
 verbose = False
 
-labels = []
+all_labels = {}
 vliw_insn = []
 
 class VLIWInstruction:
@@ -22,6 +23,11 @@ class VLIWInstruction:
         self.insns = insns
         self.addr  = addr
         self.insn_len = 16
+
+    def resolve_br_labels(self):
+        for insn in self.insns:
+            if type(insn) is BRInstruction:
+                insn.resolve_br_label(self.addr)
 
     def encode(self):
         encoding = 0
@@ -36,6 +42,7 @@ class Instruction:
         self.rs2 = 0
         self.dst = 0
         self.imm = 0
+        self.label = ''
 
     def encode_op(self):
         mapping = {
@@ -52,6 +59,8 @@ class Instruction:
             'or'   : 0b1010,
             'beq'  : 0b1011,
             'jr'   : 0b1100,
+            'slli' : 0b1101,
+            'bne'  : 0b1110,
         }
         return mapping[self.op]
 
@@ -103,6 +112,30 @@ class RRIInstruction(Instruction):
     def encode(self):
         return self.encode_op() | self.encode_dst() | self.encode_rs1() | self.encode_imm()
 
+class BRInstruction(Instruction):
+    def __init__(self, op, rs1, rs2, label):
+        self.op = op
+        self.rs1 = rs1
+        self.rs2 = rs2
+        self.label = label
+
+    def resolve_br_label(self, addr):
+        global all_labels
+        if not self.label in all_labels:
+            print_error("Label {} not defined".format(self.label))
+
+        label_def = all_labels[self.label]
+        self.pc_off = label_def.addr - addr
+        if abs(self.pc_off) > (2**3 << 2): # 3 bit word aligned
+            print_error("Branch to label {} cannot fit into imm".format(self.label))
+
+    def encode_pc_off(self):
+        return (self.pc_off >> 2) << 4
+
+    def encode(self):
+        return self.encode_op() | self.encode_pc_off() | self.encode_rs1() | self.encode_rs2()
+
+
 class RRSInstruction(Instruction):
     def __init__(self, op, source, base, imm):
         self.op = op
@@ -124,12 +157,14 @@ class RRInstruction(Instruction):
     def encode(self):
         return self.encode_op()
 
-class Label:
-    def __init__(self, ident):
-        self.ident = ident
+class LabelDef:
+    def __init__(self, name, addr):
+        self.name = name
+        self.addr = addr
 
     def print(self):
-        print(self.ident)
+        print("Label {} -> {}".format(self.name, self.addr))
+
 
 def print_error(msg):
     print("ERROR: " + msg + " at line {}".format(linenum))
@@ -141,15 +176,15 @@ def print_verbose(msg):
         print(msg)
 
 def parse_asm_directive(toks, tid, t):
-    global start_addr
+    global current_addr
     global linenum, charnum
     if t[1:] == "org":
         addr_str = toks[tid+1]
         if addr_str.startswith("0x"):
-            start_addr = int(addr_str, base=16)
+            current_addr = int(addr_str, base=16)
         else:
-            start_addr = int(addr_str)
-        print_verbose("Setting startaddr to {}".format(hex(start_addr)))
+            current_addr = int(addr_str)
+        print_verbose("Setting PC to {}".format(hex(current_addr)))
         return 1
     else:
         print_error("Unknown asm directive")
@@ -184,7 +219,7 @@ def parse_instruction(toks, tid, t, insns):
         dst = parse_reg(toks[tid+1])
         rs1 = parse_reg(toks[tid+2])
         rs2 = parse_reg(toks[tid+3])
-        print_verbose("Found insn '{}' with args x{} x{} x{}".format(t, dst, rs1, rs2))
+        print_verbose("{}: Found insn '{}' with args x{} x{} x{}".format(hex(current_addr), t, dst, rs1, rs2))
         insns.append(RRRInstruction(t, dst, rs1, rs2))
         return 4
     elif t in rri_insn:
@@ -192,14 +227,14 @@ def parse_instruction(toks, tid, t, insns):
         rs1 = parse_reg(toks[tid+2])
         imm = parse_imm(toks[tid+3])
         insns.append(RRIInstruction(t, dst, rs1, imm))
-        print_verbose("Found insn '{}' with args x{} x{} #{}".format(t, dst, rs1, imm))
+        print_verbose("{}: Found insn '{}' with args x{} x{} #{}".format(hex(current_addr), t, dst, rs1, imm))
         return 4
     elif t in rrs_insn:
         source = parse_reg(toks[tid+1])
         base = parse_reg(toks[tid+2])
         imm = parse_imm(toks[tid+3])
         insns.append(RRSInstruction(t, source, base, imm))
-        print_verbose("Found insn '{}' with args x{} x{} #{}".format(t, source, base, imm))
+        print_verbose("{}: Found insn '{}' with args x{} x{} #{}".format(hex(current_addr), t, source, base, imm))
         return 4
     elif t in rr_insn:
         dst = parse_reg(toks[tid+1])
@@ -207,14 +242,35 @@ def parse_instruction(toks, tid, t, insns):
         insns.append(RRInstruction(t, dst, label))
         print_verbose("Found insn '{}' with args x{} :{}".format(t, dst, label))
         return 3
+    elif t in br_insn:
+        rs1 = parse_reg(toks[tid+1])
+        rs2 = parse_reg(toks[tid+2])
+        label = parse_label(toks[tid+3])
+        insns.append(BRInstruction(t, rs1, rs2, label))
+        print_verbose("{}: Found insn '{}' with args x{} x{} :{}".format(hex(current_addr), t, rs1, rs2, label))
+        return 4
 
     print_error("Invalid instruction '{}'".format(t))
 
+def increase_pc():
+    global current_addr
+    current_addr = current_addr + 4
+
+def parse_label_def(tid, t, toks):
+    global current_addr
+    label = t[:-1]
+    print_verbose("Found jump-label '{}'".format(label))
+
+    if tid+1 < len(toks): # are insn in the same line?
+        label_pc = current_addr
+    else:
+        label_pc = current_addr + 4
+
+    all_labels[label] = LabelDef(label, label_pc)
+
 def parse_line(line, linenum):
     global instructions
-    global vliw_insn
-    labels = []
-    ident = ''
+    global vliw_insn, current_addr
 
     line = line.strip()
     line = line.expandtabs()
@@ -236,14 +292,15 @@ def parse_line(line, linenum):
         if t in instructions:
             skip_tokens = parse_instruction(toks, tid, t, insns)
         elif t.endswith(":"):
-            print_verbose("Found jump-label '{}'".format(t[:-1]))
+            parse_label_def(tid, t, toks)
         elif t.startswith("."):
             skip_tokens = parse_asm_directive(toks, tid, t)
         else:
             print_error("Unknown token '{}'".format(t))
 
     if len(insns) > 0: # we have a VLIW insn
-        vliw_insn.append(VLIWInstruction(0, insns))
+        vliw_insn.append(VLIWInstruction(current_addr, insns))
+        increase_pc()
 
 def parse_input(file_path):
     global linenum
@@ -252,6 +309,11 @@ def parse_input(file_path):
         for line in lines:
             linenum += 1
             parse_line(line, linenum)
+
+def resolve_branches():
+    global vliw_insn
+    for vinsn in vliw_insn:
+        vinsn.resolve_br_labels()
 
 def encode_insn():
     global vliw_insn
@@ -271,6 +333,7 @@ def main():
     verbose = args.v
 
     parse_input(args.inputs)
+    resolve_branches()
     asm = encode_insn()
 
     if (args.o is not None):

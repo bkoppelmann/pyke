@@ -23,10 +23,12 @@ class BranchUnit extends Module {
    *  beq/bge/bgeu/blt/bltu instructions
    */
   val br_eq  = io.rs1 === io.rs2
+  val br_ne  = io.rs1 =/= io.rs2
 
   io.out := MuxCase(io.pc_plus4,
                 Seq(
                   (io.ctrl === BR_EQ)   -> Mux(br_eq,  io.br_target,  io.pc_plus4),
+                  (io.ctrl === BR_NE)   -> Mux(br_ne,  io.br_target,  io.pc_plus4),
                   (io.ctrl === BR_JALR) -> io.jal_target
                 ))
 }

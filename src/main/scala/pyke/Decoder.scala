@@ -41,6 +41,7 @@ class Decoder extends Module {
       LW    -> List(Y, BR_N,    OP1_RS1,  OP2_IMM_I, ALU_ADD,  Y, WB_ALU, MEM_LOAD,  WORD),
       SW    -> List(Y, BR_N,    OP1_RS1,  OP2_IMM_S, ALU_ADD,  N, WB_X,   MEM_STORE, WORD),
       SLL   -> List(Y, BR_N,    OP1_RS1,  OP2_RS2,   ALU_SLL,  Y, WB_ALU, MEM_X,     0.U),
+      SLLI  -> List(Y, BR_N,    OP1_RS1,  OP2_IMM_I, ALU_SLL,  Y, WB_ALU, MEM_X,     0.U),
       SRL   -> List(Y, BR_N,    OP1_RS1,  OP2_RS2,   ALU_SRL,  Y, WB_ALU, MEM_X,     0.U),
       SRA   -> List(Y, BR_N,    OP1_RS1,  OP2_RS2,   ALU_SRA,  Y, WB_ALU, MEM_X,     0.U),
       XOR   -> List(Y, BR_N,    OP1_RS1,  OP2_RS2,   ALU_XOR,  Y, WB_ALU, MEM_X,     0.U),
@@ -48,6 +49,7 @@ class Decoder extends Module {
       OR    -> List(Y, BR_N,    OP1_RS1,  OP2_RS2,   ALU_OR ,  Y, WB_ALU, MEM_X,     0.U),
       OR    -> List(Y, BR_N,    OP1_RS1,  OP2_RS2,   ALU_OR ,  Y, WB_ALU, MEM_X,     0.U),
       BEQ   -> List(Y, BR_EQ,   OP1_RS1,  OP2_X,     ALU_X,    N, WB_X,   MEM_X,     0.U),
+      BNE   -> List(Y, BR_NE,   OP1_RS1,  OP2_X,     ALU_X,    N, WB_X,   MEM_X,     0.U),
       JR    -> List(Y, BR_JALR, OP1_RS1,  OP2_IMM_I, ALU_ADD,  Y, WB_PC4, MEM_X,     0.U),
   ))
 
