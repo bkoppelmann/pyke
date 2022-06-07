@@ -12,6 +12,7 @@ instructions = rrr_insn + rri_insn + rr_insn + rrs_insn
 start_addr = 0
 linenum = 0
 charnum = 0
+verbose = False
 
 labels = []
 vliw_insn = []
@@ -29,6 +30,13 @@ class VLIWInstruction:
         return str(hex(encoding))
 
 class Instruction:
+    def __init__(self):
+        self.op  = 'addi'
+        self.rs1 = 0
+        self.rs2 = 0
+        self.dst = 0
+        self.imm = 0
+
     def encode_op(self):
         mapping = {
             'add'  : 0b0000,
@@ -127,6 +135,11 @@ def print_error(msg):
     print("ERROR: " + msg + " at line {}".format(linenum))
     sys.exit(1)
 
+def print_verbose(msg):
+    global verbose
+    if verbose:
+        print(msg)
+
 def parse_asm_directive(toks, tid, t):
     global start_addr
     global linenum, charnum
@@ -136,7 +149,7 @@ def parse_asm_directive(toks, tid, t):
             start_addr = int(addr_str, base=16)
         else:
             start_addr = int(addr_str)
-        print("Setting startaddr to {}".format(hex(start_addr)))
+        print_verbose("Setting startaddr to {}".format(hex(start_addr)))
         return 1
     else:
         print_error("Unknown asm directive")
@@ -171,7 +184,7 @@ def parse_instruction(toks, tid, t, insns):
         dst = parse_reg(toks[tid+1])
         rs1 = parse_reg(toks[tid+2])
         rs2 = parse_reg(toks[tid+3])
-        print("Found insn '{}' with args x{} x{} x{}".format(t, dst, rs1, rs2))
+        print_verbose("Found insn '{}' with args x{} x{} x{}".format(t, dst, rs1, rs2))
         insns.append(RRRInstruction(t, dst, rs1, rs2))
         return 4
     elif t in rri_insn:
@@ -179,20 +192,20 @@ def parse_instruction(toks, tid, t, insns):
         rs1 = parse_reg(toks[tid+2])
         imm = parse_imm(toks[tid+3])
         insns.append(RRIInstruction(t, dst, rs1, imm))
-        print("Found insn '{}' with args x{} x{} #{}".format(t, dst, rs1, imm))
+        print_verbose("Found insn '{}' with args x{} x{} #{}".format(t, dst, rs1, imm))
         return 4
     elif t in rrs_insn:
         source = parse_reg(toks[tid+1])
         base = parse_reg(toks[tid+2])
         imm = parse_imm(toks[tid+3])
         insns.append(RRSInstruction(t, source, base, imm))
-        print("Found insn '{}' with args x{} x{} #{}".format(t, source, base, imm))
+        print_verbose("Found insn '{}' with args x{} x{} #{}".format(t, source, base, imm))
         return 4
     elif t in rr_insn:
         dst = parse_reg(toks[tid+1])
         label = parse_label(toks[tid+2])
         insns.append(RRInstruction(t, dst, label))
-        print("Found insn '{}' with args x{} :{}".format(t, dst, label))
+        print_verbose("Found insn '{}' with args x{} :{}".format(t, dst, label))
         return 3
 
     print_error("Invalid instruction '{}'".format(t))
@@ -223,12 +236,11 @@ def parse_line(line, linenum):
         if t in instructions:
             skip_tokens = parse_instruction(toks, tid, t, insns)
         elif t.endswith(":"):
-            print("Found jump-label '{}'".format(t[:-1]))
+            print_verbose("Found jump-label '{}'".format(t[:-1]))
         elif t.startswith("."):
             skip_tokens = parse_asm_directive(toks, tid, t)
         else:
-            print("ERROR: Unknown token '{}' at line {}".format(t, linenum))
-            sys.exit(1)
+            print_error("Unknown token '{}'".format(t))
 
     if len(insns) > 0: # we have a VLIW insn
         vliw_insn.append(VLIWInstruction(0, insns))
@@ -249,13 +261,18 @@ def encode_insn():
     return res
 
 def main():
+    global verbose
     parser = argparse.ArgumentParser(description='Pyke ASM')
     parser.add_argument('inputs', metavar='inputs', type=str, help='Input files to be assembled')
     parser.add_argument('-o', type=str, help='output file')
+    parser.add_argument('-v', action='store_true', help='verbose printing')
     args = parser.parse_args()
+
+    verbose = args.v
 
     parse_input(args.inputs)
     asm = encode_insn()
+
     if (args.o is not None):
         with open(args.o, 'w') as f:
             for line in asm:
