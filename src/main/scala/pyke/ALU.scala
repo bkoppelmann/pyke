@@ -15,7 +15,6 @@ class ALUIO extends Bundle {
 class ALUSimple extends Module {
 
   val io = IO(new ALUIO)
-  val shamt = io.in2(3,0)
 
   io.out := MuxLookup(io.op, 0.U,
           Seq(
@@ -26,9 +25,9 @@ class ALUSimple extends Module {
             ALU_XOR  -> (io.in1 ^ io.in2),
             ALU_SLT  -> (io.in1.asSInt() < io.in2.asSInt()).asUInt(),
             ALU_SLTU -> (io.in1 < io.in2),
-            ALU_SLL  -> (io.in1 << shamt)(15, 0),
-            ALU_SRL  -> (io.in1 >> shamt),
-            ALU_SRA  -> (io.in1.asSInt() >> shamt).asUInt()
+            ALU_SLL  -> (io.in1 << io.in2)(15, 0),
+            ALU_SRL  -> (io.in1 >> io.in2),
+            ALU_SRA  -> (io.in1.asSInt() >> io.in2).asUInt()
           ))
 }
 
