@@ -17,6 +17,8 @@
 #define VTop VPykeTop
 
 static uint64_t trace_count = 0;
+static uint8_t verbose = 0;
+static char *imem_path = NULL;
 
 double sc_time_stamp()
 {
@@ -40,6 +42,18 @@ void cycle_clock(VTop *top, VerilatedVcdC *tfp)
 
 }
 
+int verbose_printf( const char *fmt, ...)
+{
+    va_list args;
+    int ret=0;
+    if (verbose) {
+        va_start(args, fmt);
+        ret = vprintf(fmt, args);
+        va_end(args);
+    }
+    return ret;
+}
+
 void preload_imem(VTop *top, VerilatedVcdC *tfp, char* path)
 {
     FILE *f = fopen(path, "r");
@@ -50,7 +64,12 @@ void preload_imem(VTop *top, VerilatedVcdC *tfp, char* path)
 
     if (f == NULL) {
         printf("Cannot read '%s' file does not exist\n", path);
+        exit(1);
     }
+
+    verbose_printf("\n------------------------\n");
+    verbose_printf("Preloading Imem from %s\n", imem_path);
+    verbose_printf("------------------------\n\n");
 
     top->io_debug_fetch_en = 0;
     top->io_debug_imem_addr = 0x8000;
@@ -94,7 +113,6 @@ void preload_dmem(VTop *top, char* path)
     fclose(f);
 }
 
-char *imem_path = NULL;
 
 #ifdef VM_TRACE
 void parse_args(VTop *top, VerilatedVcdC *tfp, int argc, char **argv)
@@ -106,9 +124,6 @@ void parse_args(VTop *top, ,int argc, char **argv)
     while((opt=getopt(argc, argv, "i:d:v:")) != -1) {
         switch(opt) {
         case 'i':
-            printf("\n------------------------\n");
-            printf("Preloading Imem from %s\n", optarg);
-            printf("------------------------\n\n");
             imem_path = (char*)malloc(256*sizeof(char));
             strcpy(imem_path, optarg);
             break;
@@ -118,12 +133,15 @@ void parse_args(VTop *top, ,int argc, char **argv)
         case 'v':
 #ifdef VM_TRACE
             tfp->open(optarg);
-            VL_PRINTF("Enabling waves into %s ...\n", optarg);
 #else
             printf("Not compiled with VCD trace\n");
 #endif
             break;
+        case 'V':
+            verbose = true;
+            break;
         }
+
     }
     for(; optind < argc; optind++){
         //printf("extra arguments: %s\n", argv[optind]);
@@ -181,10 +199,10 @@ int main(int argc, char **argv)
         cycle_clock(top, tfp);
         if (top->io_success == 2) {
             exit_code = 0;
-            printf("Success: %s\n", imem_path);
+            verbose_printf("Success: %s\n", imem_path);
             goto early_exit;
         } else if (top->io_success == 1) {
-            printf("Failed!\n");
+            printf("Failed: %s\n", imem_path);
             exit_code = 1;
             goto early_exit;
         }
@@ -203,6 +221,6 @@ early_exit:
 #endif
 
     delete top;
+    free(imem_path);
     return exit_code;
 }
-
