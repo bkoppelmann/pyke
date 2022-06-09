@@ -25,6 +25,7 @@ import os
 import re
 import sys
 import getopt
+from enum import Enum
 
 insnwidth = 32
 bitop_width = 32
@@ -52,6 +53,10 @@ re_arg_ident = '&[a-zA-Z0-9_]*'
 re_fld_ident = '%[a-zA-Z0-9_]*'
 re_fmt_ident = '@[a-zA-Z0-9_]*'
 re_pat_ident = '[a-zA-Z0-9_]*'
+
+class OutputFormat(Enum):
+    C_Decoder = 1
+    HW = 2
 
 def error_with_file(file, lineno, *args):
     """Print an error message from file:line and args and exit."""
@@ -120,7 +125,7 @@ def whexC(val):
     return whex(val) + suffix
 
 
-def str_match_bits(bits, mask):
+def str_match_bits(bits, mask, dc_sym='.', space_sym=' '):
     """Return a string pretty-printing BITS/MASK"""
     global insnwidth
 
@@ -134,9 +139,9 @@ def str_match_bits(bits, mask):
             else:
                 r += '0'
         else:
-            r += '.'
+            r += dc_sym
         if i & space:
-            r += ' '
+            r += space_sym
         i >>= 1
     return r
 
@@ -387,6 +392,9 @@ class Pattern(General):
         output(translate_scope, 'bool ', translate_prefix, '_', self.name,
                '(DisasContext *ctx, arg_', self.name, ' *a);\n')
 
+    def output_hw(self, i, extracted, outerbits, outermask):
+        pass
+
     def output_code(self, i, extracted, outerbits, outermask):
         global translate_prefix
         ind = str_indent(i)
@@ -532,6 +540,13 @@ class Tree:
     def __str__(self):
         return self.str1(0)
 
+    def output_hw(self, i, extracted, outerbits, outermask):
+        ind = str_indent(i)
+        for i, s in self.subs:
+            innermask = outermask | self.thismask
+            innerbits = outerbits | i
+            output(ind, "def ", s.name.upper() ," = BitPat(\"", str_match_bits(innerbits, innermask, '?', ''), "\")\n")
+
     def output_code(self, i, extracted, outerbits, outermask):
         ind = str_indent(i)
 
@@ -579,6 +594,9 @@ class ExcMultiPattern(MultiPattern):
     def output_code(self, i, extracted, outerbits, outermask):
         # Defer everything to our decomposed Tree node
         self.tree.output_code(i, extracted, outerbits, outermask)
+
+    def output_hw(self, i, extracted, outerbits, outermask):
+        self.tree.output_hw(i, extracted, outerbits, outermask)
 
     @staticmethod
     def __build_tree(pats, outerbits, outermask):
@@ -1270,91 +1288,16 @@ def prop_size(tree):
 # end prop_size
 
 
-def main():
-    global arguments
-    global formats
-    global allpatterns
-    global translate_scope
-    global translate_prefix
-    global output_fd
-    global output_file
-    global input_file
-    global insnwidth
-    global insntype
-    global insnmask
-    global decode_function
-    global bitop_width
-    global variablewidth
-    global anyextern
+def output_hw(decode_scope, toppat):
+    output_autogen()
+    output("package pyke\n")
+    output("import chisel3.util.BitPat\n")
+    output("object Instructions {\n")
+    if len(allpatterns) != 0:
+        toppat.output_hw(4, False, 0, 0)
+    output("}\n")
 
-    decode_scope = 'static '
-
-    long_opts = ['decode=', 'translate=', 'output=', 'insnwidth=',
-                 'static-decode=', 'varinsnwidth=']
-    try:
-        (opts, args) = getopt.gnu_getopt(sys.argv[1:], 'o:vw:', long_opts)
-    except getopt.GetoptError as err:
-        error(0, err)
-    for o, a in opts:
-        if o in ('-o', '--output'):
-            output_file = a
-        elif o == '--decode':
-            decode_function = a
-            decode_scope = ''
-        elif o == '--static-decode':
-            decode_function = a
-        elif o == '--translate':
-            translate_prefix = a
-            translate_scope = ''
-        elif o in ('-w', '--insnwidth', '--varinsnwidth'):
-            if o == '--varinsnwidth':
-                variablewidth = True
-            insnwidth = int(a)
-            if insnwidth == 16:
-                insntype = 'uint16_t'
-                insnmask = 0xffff
-            elif insnwidth == 64:
-                insntype = 'uint64_t'
-                insnmask = 0xffffffffffffffff
-                bitop_width = 64
-            elif insnwidth != 32:
-                error(0, 'cannot handle insns of width', insnwidth)
-        else:
-            assert False, 'unhandled option'
-
-    if len(args) < 1:
-        error(0, 'missing input file')
-
-    toppat = ExcMultiPattern(0)
-
-    for filename in args:
-        input_file = filename
-        f = open(filename, 'rt', encoding='utf-8')
-        parse_file(f, toppat)
-        f.close()
-
-    # We do not want to compute masks for toppat, because those masks
-    # are used as a starting point for build_tree.  For toppat, we must
-    # insist that decode begins from naught.
-    for i in toppat.pats:
-        i.prop_masks()
-
-    toppat.build_tree()
-    toppat.prop_format()
-
-    if variablewidth:
-        for i in toppat.pats:
-            i.prop_width()
-        stree = build_size_tree(toppat.pats, 8, 0, 0)
-        prop_size(stree)
-
-    if output_file:
-        output_fd = open(output_file, 'wt', encoding='utf-8')
-    else:
-        output_fd = io.TextIOWrapper(sys.stdout.buffer,
-                                     encoding=sys.stdout.encoding,
-                                     errors="ignore")
-
+def output_c_decoder(decode_scope, toppat):
     output_autogen()
     for n in sorted(arguments.keys()):
         f = arguments[n]
@@ -1414,6 +1357,100 @@ def main():
                '    ', insntype, ' insn = 0;\n\n')
         stree.output_code(4, 0, 0, 0)
         output('}\n')
+
+
+def main():
+    global arguments
+    global formats
+    global allpatterns
+    global translate_scope
+    global translate_prefix
+    global output_fd
+    global output_file
+    global input_file
+    global insnwidth
+    global insntype
+    global insnmask
+    global decode_function
+    global bitop_width
+    global variablewidth
+    global anyextern
+
+    decode_scope = 'static '
+
+    long_opts = ['decode=', 'translate=', 'output=', 'insnwidth=',
+                 'static-decode=', 'varinsnwidth=', 'hw']
+    output_format = OutputFormat.C_Decoder
+    try:
+        (opts, args) = getopt.gnu_getopt(sys.argv[1:], 'o:vw:', long_opts)
+    except getopt.GetoptError as err:
+        error(0, err)
+    for o, a in opts:
+        if o in ('-o', '--output'):
+            output_file = a
+        elif o == '--decode':
+            decode_function = a
+            decode_scope = ''
+        elif o == '--static-decode':
+            decode_function = a
+        elif o == '--translate':
+            translate_prefix = a
+            translate_scope = ''
+        elif o in ('-w', '--insnwidth', '--varinsnwidth'):
+            if o == '--varinsnwidth':
+                variablewidth = True
+            insnwidth = int(a)
+            if insnwidth == 16:
+                insntype = 'uint16_t'
+                insnmask = 0xffff
+            elif insnwidth == 64:
+                insntype = 'uint64_t'
+                insnmask = 0xffffffffffffffff
+                bitop_width = 64
+            elif insnwidth != 32:
+                error(0, 'cannot handle insns of width', insnwidth)
+        elif o == '--hw':
+            output_format = OutputFormat.HW
+        else:
+            assert False, 'unhandled option'
+
+    if len(args) < 1:
+        error(0, 'missing input file')
+
+    toppat = ExcMultiPattern(0)
+
+    for filename in args:
+        input_file = filename
+        f = open(filename, 'rt', encoding='utf-8')
+        parse_file(f, toppat)
+        f.close()
+
+    # We do not want to compute masks for toppat, because those masks
+    # are used as a starting point for build_tree.  For toppat, we must
+    # insist that decode begins from naught.
+    for i in toppat.pats:
+        i.prop_masks()
+
+    toppat.build_tree()
+    toppat.prop_format()
+
+    if variablewidth:
+        for i in toppat.pats:
+            i.prop_width()
+        stree = build_size_tree(toppat.pats, 8, 0, 0)
+        prop_size(stree)
+
+    if output_file:
+        output_fd = open(output_file, 'wt', encoding='utf-8')
+    else:
+        output_fd = io.TextIOWrapper(sys.stdout.buffer,
+                                     encoding=sys.stdout.encoding,
+                                     errors="ignore")
+
+    if output_format == OutputFormat.C_Decoder:
+        output_c_decoder(decode_scope, toppat)
+    elif output_format == OutputFormat.HW:
+        output_hw(decode_scope, toppat)
 
     if output_file:
         output_fd.close()
