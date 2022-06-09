@@ -1,0 +1,33 @@
+
+# Reg fields
+%rd  4:4
+%rs1 8:4
+%rs2 12:4
+
+# imm
+%imm_i 12:4
+%imm_s 4:4
+
+&rrr rd rs1 rs2
+&rri rd rs1 imm_i
+&rrs rs1 rs2 imm_s
+
+@rrr .... .... .... .... &rrr %rs2 %rs1 %rd
+@rri .... .... .... .... &rri %imm_i %rs1 %rd
+@rrs .... .... .... .... &rrs %imm_s %rs2 %rs1
+
+add  .... .... .... 0000 @rrr
+addi .... .... .... 0001 @rri
+sub  .... .... .... 0010 @rrr
+lw   .... .... .... 0011 @rri
+sw   .... .... .... 0100 @rrs
+sll  .... .... .... 0101 @rrr
+srl  .... .... .... 0110 @rrr
+sra  .... .... .... 0111 @rrr
+xor  .... .... .... 1000 @rrr
+and  .... .... .... 1001 @rrr
+or   .... .... .... 1010 @rrr
+beq  .... .... .... 1011 @rrs
+jr   .... .... .... 1100 @rri
+slli .... .... .... 1101 @rri
+bne  .... .... .... 1110 @rrs
