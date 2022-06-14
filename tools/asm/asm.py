@@ -178,6 +178,7 @@ def print_verbose(msg):
 class Parser:
     def __init__(self, file_path):
         self.linenum = 0
+        self.index = 0
         with open(file_path, 'r') as f:
             self.lines = f.readlines()
 
@@ -191,10 +192,10 @@ class Parser:
         sys.exit(1)
 
 
-    def parse_asm_directive(self, toks, tid, t):
+    def parse_asm_directive(self, t):
         global current_addr
         if t[1:] == "org":
-            addr_str = toks[tid+1]
+            addr_str = self.consume()
             if addr_str.startswith("0x"):
                 current_addr = int(addr_str, base=16)
             else:
@@ -226,57 +227,70 @@ class Parser:
             return imm
         self.print_error("Expected immediate, got '{}'".format(tok))
 
-    def parse_instruction(self, toks, tid, t, insns):
+    def parse_instruction(self, t, insns):
         global rrr_insn, rri_insn, rr_insn, rrs_insn
 
         if t in rrr_insn:
-            dst = self.parse_reg(toks[tid+1])
-            rs1 = self.parse_reg(toks[tid+2])
-            rs2 = self.parse_reg(toks[tid+3])
+            dst = self.parse_reg(self.consume())
+            rs1 = self.parse_reg(self.consume())
+            rs2 = self.parse_reg(self.consume())
             print_verbose("{}: Found insn '{}' with args x{} x{} x{}".format(hex(current_addr), t, dst, rs1, rs2))
             insns.append(RRRInstruction(t, dst, rs1, rs2))
-            return 4
+
         elif t in rri_insn:
-            dst = self.parse_reg(toks[tid+1])
-            rs1 = self.parse_reg(toks[tid+2])
-            imm = self.parse_imm(toks[tid+3])
+            dst = self.parse_reg(self.consume())
+            rs1 = self.parse_reg(self.consume())
+            imm = self.parse_imm(self.consume())
             insns.append(RRIInstruction(t, dst, rs1, imm))
             print_verbose("{}: Found insn '{}' with args x{} x{} #{}".format(hex(current_addr), t, dst, rs1, imm))
-            return 4
         elif t in rrs_insn:
-            source = self.parse_reg(toks[tid+1])
-            base =   self.parse_reg(toks[tid+2])
-            imm =    self.parse_imm(toks[tid+3])
+            source = self.parse_reg(self.consume())
+            base =   self.parse_reg(self.consume())
+            imm =    self.parse_imm(self.consume())
             insns.append(RRSInstruction(t, source, base, imm))
             print_verbose("{}: Found insn '{}' with args x{} x{} #{}".format(hex(current_addr), t, source, base, imm))
-            return 4
         elif t in rr_insn:
-            dst   = self.parse_reg(toks[tid+1])
-            label = self.parse_label(toks[tid+2])
+            dst   = self.parse_reg(self.consume())
+            label = self.parse_label(self.consume())
             insns.append(RRInstruction(t, dst, label))
             print_verbose("Found insn '{}' with args x{} :{}".format(t, dst, label))
-            return 3
+
         elif t in br_insn:
-            rs1   = self.parse_reg(toks[tid+1])
-            rs2   = self.parse_reg(toks[tid+2])
-            label = self.parse_label(toks[tid+3])
+            rs1   = self.parse_reg(self.consume())
+            rs2   = self.parse_reg(self.consume())
+            label = self.parse_label(self.consume())
             insns.append(BRInstruction(t, rs1, rs2, label))
             print_verbose("{}: Found insn '{}' with args x{} x{} :{}".format(hex(current_addr), t, rs1, rs2, label))
-            return 4
+        else:
+            self.print_error("Invalid instruction '{}'".format(t))
 
-        print_error("Invalid instruction '{}'".format(t))
-
-    def parse_label_def(self, tid, t, toks):
+    def parse_label_def(self, t):
         global current_addr
         label = t[:-1]
         print_verbose("Found jump-label '{}'".format(label))
 
-        if tid+1 < len(toks): # are insn in the same line?
+        if self.index+1 < len(self.toks): # are insn in the same line?
             label_pc = current_addr
         else:
             label_pc = current_addr + 4
 
         all_labels[label] = LabelDef(label, label_pc)
+
+    def eol(self):
+        return self.index >= len(self.toks)
+
+    def peek(self):
+        return self.toks[self.index]
+
+    def consume(self):
+        res = self.peek()
+        self.index += 1
+        return res
+
+    def consume_specific(self, char):
+        if self.peek() != char:
+            self.print_error("Expected token '{}'".format(char))
+        return self.consume()
 
     def parse_line(self, line):
         global instructions
@@ -289,22 +303,21 @@ class Parser:
         if end >= 0:
             line = line[:end]
 
-        toks = line.split()
-        skip_tokens = 0
+        self.toks = line.split()
+        self.index = 0
 
         insns = []
 
-        for tid, t in enumerate(toks):
-            if skip_tokens > 0:
-                skip_tokens = skip_tokens - 1
-                continue
-
+        while not self.eol():
+            t = self.consume()
             if t in instructions:
-                skip_tokens = self.parse_instruction(toks, tid, t, insns)
+                self.parse_instruction(t, insns)
+                if not self.eol():
+                    self.consume_specific('|')
             elif t.endswith(":"):
-                self.parse_label_def(tid, t, toks)
+                self.parse_label_def(t)
             elif t.startswith("."):
-                skip_tokens = self.parse_asm_directive(toks, tid, t)
+                skip_tokens = self.parse_asm_directive(t)
             else:
                 self.print_error("Unknown token '{}'".format(t))
 
