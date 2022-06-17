@@ -1,20 +1,14 @@
 #! /usr/bin/env python3
 import sys
 import argparse
+import be
 
-rrr_insn = ['add', 'sub', 'sll', 'srl', 'sra', 'xor', 'and', 'or']
-rri_insn = ['addi', 'slli', 'lw']
-rrs_insn = ['sw']
-br_insn = ['bne', 'beq']
-rr_insn  = ['jr']
 
-instructions = rrr_insn + rri_insn + rr_insn + rrs_insn + br_insn
 
 current_addr = 0
 charnum = 0
 verbose = False
 
-all_labels = {}
 vliw_insn = []
 
 class VLIWInstruction:
@@ -25,7 +19,7 @@ class VLIWInstruction:
 
     def resolve_br_labels(self):
         for insn in self.insns:
-            if type(insn) is BRInstruction:
+            if insn.is_branch():
                 insn.resolve_br_label(self.addr)
 
     def encode(self):
@@ -34,131 +28,6 @@ class VLIWInstruction:
             encoding = encoding | (insn.encode() << (num * self.insn_len))
         return str(hex(encoding))
 
-class Instruction:
-    def __init__(self):
-        self.op  = 'addi'
-        self.rs1 = 0
-        self.rs2 = 0
-        self.dst = 0
-        self.imm = 0
-        self.label = ''
-
-    def print_error(self, msg):
-        print("ERROR: " + msg)
-        sys.exit(1)
-
-    def encode_op(self):
-        mapping = {
-            'add'  : 0b0000,
-            'addi' : 0b0001,
-            'sub'  : 0b0010,
-            'lw'   : 0b0011,
-            'sw'   : 0b0100,
-            'sll'  : 0b0101,
-            'srl'  : 0b0110,
-            'sra'  : 0b0111,
-            'xor'  : 0b1000,
-            'and'  : 0b1001,
-            'or'   : 0b1010,
-            'beq'  : 0b1011,
-            'jr'   : 0b1100,
-            'slli' : 0b1101,
-            'bne'  : 0b1110,
-        }
-        return mapping[self.op]
-
-    def encode_rs1(self):
-        if self.rs1 > 15 or self.rs1 < 0:
-            self.print_error("Invalid register '{}'".format(self.rs1))
-        return self.rs1 << 8
-
-    def encode_rs2(self):
-        if self.rs2 > 15 or self.rs2 < 0:
-            self.print_error("Invalid register '{}'".format(self.rs2))
-        return self.rs2 << 12
-
-    def encode_dst(self):
-        if self.dst > 15 or self.dst < 0:
-            self.print_error("Invalid register '{}'".format(self.dst))
-        return self.dst << 4
-
-    def encode_imm(self):
-        if self.imm > 15 or self.imm < 0:
-            self.print_error("Invalid imm '{}'".format(self.imm))
-        return self.imm << 12
-
-    def encode_simm(self):
-        if self.imm > 15 or self.imm < 0:
-            self.print_error("Invalid imm '{}'".format(self.imm))
-        return self.imm << 4
-
-
-
-class RRRInstruction(Instruction):
-    def __init__(self, op, dst, rs1, rs2):
-        self.op = op
-        self.dst = dst
-        self.rs1 = rs1
-        self.rs2 = rs2
-
-    def encode(self):
-        return self.encode_op() | self.encode_dst() | self.encode_rs1() | self.encode_rs2()
-
-
-class RRIInstruction(Instruction):
-    def __init__(self, op, dst, rs1, imm):
-        self.op = op
-        self.dst = dst
-        self.rs1 = rs1
-        self.imm = imm
-
-    def encode(self):
-        return self.encode_op() | self.encode_dst() | self.encode_rs1() | self.encode_imm()
-
-class BRInstruction(Instruction):
-    def __init__(self, op, rs1, rs2, label):
-        self.op = op
-        self.rs1 = rs1
-        self.rs2 = rs2
-        self.label = label
-
-    def resolve_br_label(self, addr):
-        global all_labels
-        if not self.label in all_labels:
-            self.print_error("Label {} not defined".format(self.label))
-
-        label_def = all_labels[self.label]
-        self.pc_off = label_def.addr - addr
-        if abs(self.pc_off) > (2**3 << 2): # 3 bit word aligned
-            self.print_error("Branch to label {} cannot fit into imm".format(self.label))
-
-    def encode_pc_off(self):
-        return (self.pc_off >> 2) << 4
-
-    def encode(self):
-        return self.encode_op() | self.encode_pc_off() | self.encode_rs1() | self.encode_rs2()
-
-
-class RRSInstruction(Instruction):
-    def __init__(self, op, source, base, imm):
-        self.op = op
-        self.rs1 = base
-        self.rs2 = source
-        self.imm = imm
-
-    def encode(self):
-        return self.encode_op() | self.encode_simm() | self.encode_rs1() | self.encode_rs2()
-
-
-
-class RRInstruction(Instruction):
-    def __init__(self, op, dst, rs1):
-        self.op = op
-        self.dst = dst
-        self.rs1 = rs1
-
-    def encode(self):
-        return self.encode_op()
 
 class LabelDef:
     def __init__(self, name, addr):
@@ -179,6 +48,8 @@ class Parser:
     def __init__(self, file_path):
         self.linenum = 0
         self.index = 0
+        self.labels = {}
+        self.be = be.Backend(self)
         with open(file_path, 'r') as f:
             self.lines = f.readlines()
 
@@ -227,42 +98,6 @@ class Parser:
             return imm
         self.print_error("Expected immediate, got '{}'".format(tok))
 
-    def parse_instruction(self, t, insns):
-        global rrr_insn, rri_insn, rr_insn, rrs_insn
-
-        if t in rrr_insn:
-            dst = self.parse_reg(self.consume())
-            rs1 = self.parse_reg(self.consume())
-            rs2 = self.parse_reg(self.consume())
-            print_verbose("{}: Found insn '{}' with args x{} x{} x{}".format(hex(current_addr), t, dst, rs1, rs2))
-            insns.append(RRRInstruction(t, dst, rs1, rs2))
-
-        elif t in rri_insn:
-            dst = self.parse_reg(self.consume())
-            rs1 = self.parse_reg(self.consume())
-            imm = self.parse_imm(self.consume())
-            insns.append(RRIInstruction(t, dst, rs1, imm))
-            print_verbose("{}: Found insn '{}' with args x{} x{} #{}".format(hex(current_addr), t, dst, rs1, imm))
-        elif t in rrs_insn:
-            source = self.parse_reg(self.consume())
-            base =   self.parse_reg(self.consume())
-            imm =    self.parse_imm(self.consume())
-            insns.append(RRSInstruction(t, source, base, imm))
-            print_verbose("{}: Found insn '{}' with args x{} x{} #{}".format(hex(current_addr), t, source, base, imm))
-        elif t in rr_insn:
-            dst   = self.parse_reg(self.consume())
-            label = self.parse_label(self.consume())
-            insns.append(RRInstruction(t, dst, label))
-            print_verbose("Found insn '{}' with args x{} :{}".format(t, dst, label))
-
-        elif t in br_insn:
-            rs1   = self.parse_reg(self.consume())
-            rs2   = self.parse_reg(self.consume())
-            label = self.parse_label(self.consume())
-            insns.append(BRInstruction(t, rs1, rs2, label))
-            print_verbose("{}: Found insn '{}' with args x{} x{} :{}".format(hex(current_addr), t, rs1, rs2, label))
-        else:
-            self.print_error("Invalid instruction '{}'".format(t))
 
     def parse_label_def(self, t):
         global current_addr
@@ -274,7 +109,7 @@ class Parser:
         else:
             label_pc = current_addr + 4
 
-        all_labels[label] = LabelDef(label, label_pc)
+        self.labels[label] = LabelDef(label, label_pc)
 
     def eol(self):
         return self.index >= len(self.toks)
@@ -293,7 +128,6 @@ class Parser:
         return self.consume()
 
     def parse_line(self, line):
-        global instructions
         global vliw_insn, current_addr
 
         line = line.strip()
@@ -310,8 +144,8 @@ class Parser:
 
         while not self.eol():
             t = self.consume()
-            if t in instructions:
-                self.parse_instruction(t, insns)
+            if t in self.be.instructions:
+                self.be.parse_instruction(t, insns)
                 if not self.eol():
                     self.consume_specific('|')
             elif t.endswith(":"):
