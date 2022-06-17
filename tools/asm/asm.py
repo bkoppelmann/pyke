@@ -4,11 +4,7 @@ import argparse
 import be
 
 
-
-current_addr = 0
-charnum = 0
 verbose = False
-
 vliw_insn = []
 
 class VLIWInstruction:
@@ -49,6 +45,7 @@ class Parser:
         self.linenum = 0
         self.index = 0
         self.labels = {}
+        self.current_addr = 0
         self.be = be.Backend(self)
         with open(file_path, 'r') as f:
             self.lines = f.readlines()
@@ -64,14 +61,13 @@ class Parser:
 
 
     def parse_asm_directive(self, t):
-        global current_addr
         if t[1:] == "org":
             addr_str = self.consume()
             if addr_str.startswith("0x"):
-                current_addr = int(addr_str, base=16)
+                self.current_addr = int(addr_str, base=16)
             else:
-                current_addr = int(addr_str)
-            print_verbose("Setting PC to {}".format(hex(current_addr)))
+                self.current_addr = int(addr_str)
+            print_verbose("Setting PC to {}".format(hex(self.current_addr)))
             return 1
         else:
             self.print_error("Unknown asm directive")
@@ -100,14 +96,13 @@ class Parser:
 
 
     def parse_label_def(self, t):
-        global current_addr
         label = t[:-1]
         print_verbose("Found jump-label '{}'".format(label))
 
         if self.index+1 < len(self.toks): # are insn in the same line?
-            label_pc = current_addr
+            label_pc = self.current_addr
         else:
-            label_pc = current_addr + 4
+            label_pc = self.current_addr + 4
 
         self.labels[label] = LabelDef(label, label_pc)
 
@@ -128,7 +123,7 @@ class Parser:
         return self.consume()
 
     def parse_line(self, line):
-        global vliw_insn, current_addr
+        global vliw_insn
 
         line = line.strip()
         line = line.expandtabs()
@@ -156,13 +151,8 @@ class Parser:
                 self.print_error("Unknown token '{}'".format(t))
 
         if len(insns) > 0: # we have a VLIW insn
-            vliw_insn.append(VLIWInstruction(current_addr, insns))
-            increase_pc()
-
-
-def increase_pc():
-    global current_addr
-    current_addr = current_addr + 4
+            vliw_insn.append(VLIWInstruction(self.current_addr, insns))
+            self.current_addr = self.current_addr + 4
 
 
 def resolve_branches():
