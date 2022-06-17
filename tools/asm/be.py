@@ -137,15 +137,14 @@ class BRInstruction(Instruction):
     def is_branch(self):
         return True
 
-    def resolve_br_label(self, addr):
-        pass
-#        if not self.label in all_labels:
-#            self.print_error("Label {} not defined".format(self.label))
-#
-#        label_def = all_labels[self.label]
-#        self.pc_off = label_def.addr - addr
-#        if abs(self.pc_off) > (2**3 << 2): # 3 bit word aligned
-#            self.print_error("Branch to label {} cannot fit into imm".format(self.label))
+    def resolve_br_label(self, all_labels, addr):
+        if not self.label in all_labels:
+            self.print_error("Label {} not defined".format(self.label))
+
+        label_def = all_labels[self.label]
+        self.pc_off = label_def.addr - addr
+        if abs(self.pc_off) > (2**3 << 2): # 3 bit word aligned
+            self.print_error("Branch to label {} cannot fit into imm".format(self.label))
 
     def encode_pc_off(self):
         return (self.pc_off >> 2) << 4

@@ -13,10 +13,10 @@ class VLIWInstruction:
         self.addr  = addr
         self.insn_len = 16
 
-    def resolve_br_labels(self):
+    def resolve_br_labels(self, all_labels):
         for insn in self.insns:
             if insn.is_branch():
-                insn.resolve_br_label(self.addr)
+                insn.resolve_br_label(all_labels, self.addr)
 
     def encode(self):
         encoding = 0
@@ -155,10 +155,10 @@ class Parser:
             self.current_addr = self.current_addr + 4
 
 
-def resolve_branches():
+def resolve_branches(all_labels):
     global vliw_insn
     for vinsn in vliw_insn:
-        vinsn.resolve_br_labels()
+        vinsn.resolve_br_labels(all_labels)
 
 def encode_insn():
     global vliw_insn
@@ -178,7 +178,7 @@ def main():
     verbose = args.v
     asm_parser = Parser(args.inputs)
     asm_parser.parse()
-    resolve_branches()
+    resolve_branches(asm_parser.labels)
     asm = encode_insn()
 
     if (args.o is not None):
