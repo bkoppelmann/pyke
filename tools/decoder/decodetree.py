@@ -57,6 +57,7 @@ re_pat_ident = '[a-zA-Z0-9_]*'
 class OutputFormat(Enum):
     C_Decoder = 1
     HW = 2
+    ASM_BE = 3
 
 def error_with_file(file, lineno, *args):
     """Print an error message from file:line and args and exit."""
@@ -384,6 +385,10 @@ class Format(General):
 class Pattern(General):
     """Class representing an instruction pattern"""
 
+    def __init__(self, name, lineno, base, fixb, fixm, udfm, fldm, flds, w, arg):
+        General.__init__(self, name, lineno, base, fixb, fixm, udfm, fldm, flds, w)
+        self.arg_set = arg
+
     def output_decl(self):
         global translate_scope
         global translate_prefix
@@ -546,6 +551,9 @@ class Tree:
             innermask = outermask | self.thismask
             innerbits = outerbits | i
             output(ind, "def ", s.name.upper() ," = BitPat(\"", str_match_bits(innerbits, innermask, '?', ''), "\")\n")
+
+    def output_asm_be(self, i, extracted, outerbits, outermask):
+        pass
 
     def output_code(self, i, extracted, outerbits, outermask):
         ind = str_indent(i)
@@ -997,7 +1005,7 @@ def parse_generic(lineno, parent_pat, name, toks):
             if f not in flds.keys() and f not in fmt.fields.keys():
                 error(lineno, f'field {f} not initialized')
         pat = Pattern(name, lineno, fmt, fixedbits, fixedmask,
-                      undefmask, fieldmask, flds, width)
+                      undefmask, fieldmask, flds, width, arg)
         parent_pat.pats.append(pat)
         allpatterns.append(pat)
 
@@ -1297,6 +1305,33 @@ def output_hw(decode_scope, toppat):
         toppat.output_hw(4, False, 0, 0)
     output("}\n")
 
+def output_asm_be(decode_scope, toppat):
+    output_autogen()
+    output("import sys\n")
+    output("class Backend\n")
+    output("    def __init__(self, parser):\n")
+    output("        self.parser = parser\n")
+
+    for n in sorted(arguments.keys()):
+        f = arguments[n]
+        output("        self." + f.name + " = [")
+        first = True
+        for i, p in enumerate(allpatterns):
+            if p.arg_set == f:
+                if not first:
+                    output(", ")
+                first = False
+                output("'" + p.name + "'")
+        output("]\n")
+
+    output("        self.instructions = ")
+    for i, n in enumerate(sorted(arguments.keys())):
+        f = arguments[n]
+        output(f.name)
+        if i != len(arguments)-1:
+            output(" + ")
+    output("\n")
+
 def output_c_decoder(decode_scope, toppat):
     output_autogen()
     for n in sorted(arguments.keys()):
@@ -1379,7 +1414,7 @@ def main():
     decode_scope = 'static '
 
     long_opts = ['decode=', 'translate=', 'output=', 'insnwidth=',
-                 'static-decode=', 'varinsnwidth=', 'hw']
+                 'static-decode=', 'varinsnwidth=', 'hw', 'asm']
     output_format = OutputFormat.C_Decoder
     try:
         (opts, args) = getopt.gnu_getopt(sys.argv[1:], 'o:vw:', long_opts)
@@ -1411,6 +1446,8 @@ def main():
                 error(0, 'cannot handle insns of width', insnwidth)
         elif o == '--hw':
             output_format = OutputFormat.HW
+        elif o == '--asm':
+            output_format = OutputFormat.ASM_BE
         else:
             assert False, 'unhandled option'
 
@@ -1451,6 +1488,8 @@ def main():
         output_c_decoder(decode_scope, toppat)
     elif output_format == OutputFormat.HW:
         output_hw(decode_scope, toppat)
+    elif output_format == OutputFormat.ASM_BE:
+        output_asm_be(decode_scope, toppat)
 
     if output_file:
         output_fd.close()
