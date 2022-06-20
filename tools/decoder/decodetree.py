@@ -1331,6 +1331,32 @@ def output_asm_be(decode_scope, toppat):
         if i != len(arguments)-1:
             output(" + ")
     output("\n")
+    output_asm_be_parse_fn(decode_scope, toppat)
+
+def list_to_seperated_str(l, sep):
+    res = ""
+    for idx, elm in enumerate(l):
+        if idx == len(l)-1:
+            res += elm
+        else:
+            res += elm + sep
+    return res
+
+def output_asm_be_parse_fn(decode_scope, toppat):
+    output("\n    def parse_instruction(self, t, insns):\n")
+    for n in sorted(arguments.keys()):
+        arg = arguments[n]
+        output("        if t in self.{}:\n".format(arg.name))
+        for field in arg.fields:
+            # FIXME: We should use parse_reg here if this is an immediate
+            output(str_indent(12) + "{} = self.parser.parse_reg(self.parser.consume())\n".format(field))
+
+        output(str_indent(12) + "insns.append({}Instruction(".format(arg.name.upper()))
+        output(list_to_seperated_str(arg.fields, ", "))
+        output("))\n")
+    output(str_indent(8) + "else:\n")
+    output(str_indent(12) + "self.parse.print_error(\"Invalid insn '{}'\".format(t))\n")
+
 
 def output_c_decoder(decode_scope, toppat):
     output_autogen()
