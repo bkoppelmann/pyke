@@ -552,8 +552,26 @@ class Tree:
             innerbits = outerbits | i
             output(ind, "def ", s.name.upper() ," = BitPat(\"", str_match_bits(innerbits, innermask, '?', ''), "\")\n")
 
-    def output_asm_be(self, i, extracted, outerbits, outermask):
-        pass
+    def output_asm_be_encode(self, i, extracted, outerbits, outermask):
+        ind = str_indent(i)
+        output(ind, "def encode_op(self):\n")
+        ind = str_indent(i+4)
+        output(ind, "mapping = {\n")
+        ind = str_indent(i+8)
+        for _, s in self.subs:
+            innermask = outermask | self.thismask
+            innerbits = outerbits | i
+            output(ind, "'{}' : 0b{}\n".format(s.name, str_match_bits(innerbits, innermask, '', '')))
+
+        print(i)
+        ind = str_indent(i+4)
+        output(ind, "}\n")
+        output(ind, "return mapping[self.op]\n")
+
+
+
+    def get_pattern(self, i):
+        return self.subs[i][1].name
 
     def output_code(self, i, extracted, outerbits, outermask):
         ind = str_indent(i)
@@ -1332,6 +1350,7 @@ def output_asm_be(decode_scope, toppat):
             output(" + ")
     output("\n")
     output_asm_be_parse_fn(decode_scope, toppat)
+    output_asm_be_insn_class(decode_scope, toppat)
 
 def list_to_seperated_str(l, sep):
     res = ""
@@ -1356,6 +1375,14 @@ def output_asm_be_parse_fn(decode_scope, toppat):
         output("))\n")
     output(str_indent(8) + "else:\n")
     output(str_indent(12) + "self.parse.print_error(\"Invalid insn '{}'\".format(t))\n")
+
+
+def output_asm_be_insn_class(decode_scope, toppat):
+    output("\nclass Instruction:\n")
+    output(str_indent(4) + "def __init__(self):\n")
+    output(str_indent(8) + "self.op = '{}'\n".format(toppat.tree.get_pattern(0)))
+
+    toppat.tree.output_asm_be_encode(4, 0, False, False)
 
 
 def output_c_decoder(decode_scope, toppat):
