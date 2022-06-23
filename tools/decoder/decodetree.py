@@ -335,6 +335,18 @@ class Arguments:
     def struct_name(self):
         return 'arg_' + self.name
 
+    def output_asm_be(self):
+        output("class {}Instruction(Instruction):\n".format(self.name.upper()))
+        ind = str_indent(4)
+        output(ind, "def __init__(self, ")
+        output(list_to_seperated_str(self.fields, ", "))
+        output("):\n")
+        ind = str_indent(8)
+        output(ind, "self.op = op\n")
+        for f in self.fields:
+            output(ind, "self.{0} = {0}\n".format(f))
+
+
     def output_def(self):
         if not self.extern:
             output('typedef struct {\n')
@@ -563,7 +575,6 @@ class Tree:
             innerbits = outerbits | i
             output(ind, "'{}' : 0b{}\n".format(s.name, str_match_bits(innerbits, innermask, '', '')))
 
-        print(i)
         ind = str_indent(i+4)
         output(ind, "}\n")
         output(ind, "return mapping[self.op]\n")
@@ -1351,6 +1362,7 @@ def output_asm_be(decode_scope, toppat):
     output("\n")
     output_asm_be_parse_fn(decode_scope, toppat)
     output_asm_be_insn_class(decode_scope, toppat)
+    output_asm_be_insn_arg_classes(decode_scope, toppat)
 
 def list_to_seperated_str(l, sep):
     res = ""
@@ -1383,6 +1395,11 @@ def output_asm_be_insn_class(decode_scope, toppat):
     output(str_indent(8) + "self.op = '{}'\n".format(toppat.tree.get_pattern(0)))
 
     toppat.tree.output_asm_be_encode(4, 0, False, False)
+
+def output_asm_be_insn_arg_classes(decode_scope, toppat):
+    for n in sorted(arguments.keys()):
+        arg = arguments[n]
+        arg.output_asm_be()
 
 
 def output_c_decoder(decode_scope, toppat):
