@@ -217,6 +217,10 @@ class Field:
         s = 's' if self.sign else ''
         return f'{s}extract{bitop_width}(insn, {self.pos}, {self.len})'
 
+    def str_encode(self, field):
+        global bitop_width
+        return f'(self.{field} << {self.pos})'
+
     def __eq__(self, other):
         return self.sign == other.sign and self.mask == other.mask
 
@@ -404,6 +408,16 @@ class Format(General):
         for n, f in self.fields.items():
             output('    a->', n, ' = ', f.str_extract(), ';\n')
         output('}\n\n')
+
+    def output_encode_asm_be(self, yaml):
+        output("self.encode_op()")
+        for n, f in self.fields.items():
+            output(" | ")
+            if n in yaml['decoder']['label_fields']:
+                output(f.str_encode("pc_off"))
+            else:
+                output(f.str_encode(n))
+        output("\n")
 # end Format
 
 
@@ -437,6 +451,9 @@ class Pattern(General):
             output(ind, 'u.f_', arg, '.', n, ' = ', f.str_extract(), ';\n')
         output(ind, 'if (', translate_prefix, '_', self.name,
                '(ctx, &u.f_', arg, ')) return true;\n')
+
+    def output_encoding(self, ind, outermask, outerbits, i):
+        output("\n", ind, "'{}' : 0b0".format(self.name))
 
     # Normal patterns do not have children.
     def build_tree(self):
@@ -581,21 +598,27 @@ class Tree:
         ind = str_indent(i)
         output(ind, "def encode_op(self):\n")
         ind = str_indent(i+4)
-        output(ind, "mapping = {\n")
+        output(ind, "mapping = {")
         ind = str_indent(i+8)
-        for _, s in self.subs:
-            innermask = outermask | self.thismask
-            innerbits = outerbits | i
-            output(ind, "'{}' : 0b{}\n".format(s.name, str_match_bits(innerbits, innermask, '', '')))
-
+        self.output_encoding(ind, outermask, outerbits, i)
         ind = str_indent(i+4)
-        output(ind, "}\n")
+        output("\n", ind, "}\n")
         output(ind, "return mapping[self.op]\n")
 
 
 
     def get_pattern(self, i):
-        return self.subs[i][1].name
+        if type(self.subs[i][1]) is Pattern:
+            return self.subs[i][1].name
+        elif type(self.subs[i][1]) is Tree:
+            return self.subs[i][1].get_pattern(i)
+
+    def output_encoding(self, ind, outermask, outerbits, i):
+        innermask = outermask | self.thismask
+        innerbits = outerbits | i
+        for b, s in self.subs:
+            s.output_encoding(ind, innermask, innerbits, i)
+            output(" | ", bin(b))
 
     def output_code(self, i, extracted, outerbits, outermask):
         ind = str_indent(i)
@@ -1425,6 +1448,16 @@ def output_asm_be_insn_arg_classes(decode_scope, toppat, yaml):
     for n in sorted(arguments.keys()):
         arg = arguments[n]
         arg.output_asm_be(yaml)
+        output_asm_be_insn_arg_class_encode(toppat, arg, yaml)
+
+def output_asm_be_insn_arg_class_encode(toppat, arg, yaml):
+    output(str_indent(4), "def encode(self):\n")
+    output(str_indent(8), "return ")
+    print(toppat.tree.thismask)
+    for n in sorted(formats.keys()):
+        f = formats[n]
+        if f.name == arg.name:
+            f.output_encode_asm_be(yaml)
 
 
 def output_c_decoder(decode_scope, toppat):
