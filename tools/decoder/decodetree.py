@@ -336,7 +336,7 @@ class Arguments:
     def struct_name(self):
         return 'arg_' + self.name
 
-    def output_asm_be(self):
+    def output_asm_be(self, yaml):
         output("class {}Instruction(Instruction):\n".format(self.name.upper()))
         ind = str_indent(4)
         output(ind, "def __init__(self, ")
@@ -347,6 +347,18 @@ class Arguments:
         for f in self.fields:
             output(ind, "self.{0} = {0}\n".format(f))
 
+        label_fields = self.count_label_fields(yaml)
+        if label_fields != 0:
+            output(str_indent(4), "def has_label(self):\n")
+            output(str_indent(8), "return True\n")
+
+
+    def count_label_fields(self, yaml):
+        res = 0
+        for f in self.fields:
+            if f in yaml['decoder']['label_fields']:
+                res += 1
+        return res
 
     def output_def(self):
         if not self.extern:
@@ -1363,7 +1375,7 @@ def output_asm_be(decode_scope, toppat, yaml):
     output("\n")
     output_asm_be_parse_fn(decode_scope, toppat, yaml)
     output_asm_be_insn_class(decode_scope, toppat)
-    output_asm_be_insn_arg_classes(decode_scope, toppat)
+    output_asm_be_insn_arg_classes(decode_scope, toppat, yaml)
 
 def list_to_seperated_str(l, sep):
     res = ""
@@ -1377,6 +1389,7 @@ def list_to_seperated_str(l, sep):
 def output_asm_be_parse_fn(decode_scope, toppat, yaml):
     reg_fields = yaml['decoder']['reg_fields']
     imm_fields = yaml['decoder']['imm_fields']
+    label_fields = yaml['decoder']['label_fields']
     output("\n    def parse_instruction(self, t, insns):\n")
     for n in sorted(arguments.keys()):
         arg = arguments[n]
@@ -1386,6 +1399,8 @@ def output_asm_be_parse_fn(decode_scope, toppat, yaml):
                 output(str_indent(12) + "{} = self.parser.parse_reg(self.parser.consume())\n".format(field))
             elif field in imm_fields:
                 output(str_indent(12) + "{} = self.parser.parse_imm(self.parser.consume())\n".format(field))
+            elif field in label_fields:
+                output(str_indent(12) + "{} = self.parser.parse_label(self.parser.consume())\n".format(field))
             else:
                 print("ERROR:Unknown field '{}'".format(field))
                 sys.exit(1)
@@ -1403,13 +1418,13 @@ def output_asm_be_insn_class(decode_scope, toppat):
     output(str_indent(8) + "self.op = '{}'\n".format(toppat.tree.get_pattern(0)))
 
     toppat.tree.output_asm_be_encode(4, 0, False, False)
-    output(str_indent(4), "def is_branch(self):\n")
+    output(str_indent(4), "def has_label(self):\n")
     output(str_indent(8), "return False\n\n")
 
-def output_asm_be_insn_arg_classes(decode_scope, toppat):
+def output_asm_be_insn_arg_classes(decode_scope, toppat, yaml):
     for n in sorted(arguments.keys()):
         arg = arguments[n]
-        arg.output_asm_be()
+        arg.output_asm_be(yaml)
 
 
 def output_c_decoder(decode_scope, toppat):
