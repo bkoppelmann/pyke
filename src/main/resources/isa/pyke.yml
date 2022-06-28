@@ -1,0 +1,9 @@
+isa:
+  atomLen: 16
+  atomPerInsn: 2
+
+  xLen: 16
+
+decoder:
+  imm_fields: ["imm_i", "imm_s"]
+  reg_fields: ["rd", "rs1", "rs2"]

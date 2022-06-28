@@ -25,6 +25,7 @@ import os
 import re
 import sys
 import getopt
+import yaml
 from enum import Enum
 
 insnwidth = 32
@@ -1334,7 +1335,7 @@ def output_hw(decode_scope, toppat):
         toppat.output_hw(4, False, 0, 0)
     output("}\n")
 
-def output_asm_be(decode_scope, toppat):
+def output_asm_be(decode_scope, toppat, yaml):
     output_autogen()
     output("import sys\n")
     output("class Backend\n")
@@ -1360,7 +1361,7 @@ def output_asm_be(decode_scope, toppat):
         if i != len(arguments)-1:
             output(" + ")
     output("\n")
-    output_asm_be_parse_fn(decode_scope, toppat)
+    output_asm_be_parse_fn(decode_scope, toppat, yaml)
     output_asm_be_insn_class(decode_scope, toppat)
     output_asm_be_insn_arg_classes(decode_scope, toppat)
 
@@ -1373,14 +1374,21 @@ def list_to_seperated_str(l, sep):
             res += elm + sep
     return res
 
-def output_asm_be_parse_fn(decode_scope, toppat):
+def output_asm_be_parse_fn(decode_scope, toppat, yaml):
+    reg_fields = yaml['decoder']['reg_fields']
+    imm_fields = yaml['decoder']['imm_fields']
     output("\n    def parse_instruction(self, t, insns):\n")
     for n in sorted(arguments.keys()):
         arg = arguments[n]
         output("        if t in self.{}:\n".format(arg.name))
         for field in arg.fields:
-            # FIXME: We should use parse_reg here if this is an immediate
-            output(str_indent(12) + "{} = self.parser.parse_reg(self.parser.consume())\n".format(field))
+            if field in reg_fields:
+                output(str_indent(12) + "{} = self.parser.parse_reg(self.parser.consume())\n".format(field))
+            elif field in imm_fields:
+                output(str_indent(12) + "{} = self.parser.parse_imm(self.parser.consume())\n".format(field))
+            else:
+                print("ERROR:Unknown field '{}'".format(field))
+                sys.exit(1)
 
         output(str_indent(12) + "insns.append({}Instruction(".format(arg.name.upper()))
         output(list_to_seperated_str(arg.fields, ", "))
@@ -1395,6 +1403,8 @@ def output_asm_be_insn_class(decode_scope, toppat):
     output(str_indent(8) + "self.op = '{}'\n".format(toppat.tree.get_pattern(0)))
 
     toppat.tree.output_asm_be_encode(4, 0, False, False)
+    output(str_indent(4), "def is_branch(self):\n")
+    output(str_indent(8), "return False\n\n")
 
 def output_asm_be_insn_arg_classes(decode_scope, toppat):
     for n in sorted(arguments.keys()):
@@ -1463,6 +1473,12 @@ def output_c_decoder(decode_scope, toppat):
         stree.output_code(4, 0, 0, 0)
         output('}\n')
 
+def read_config(c):
+    with open(c, "r") as stream:
+        try:
+            return yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
 
 def main():
     global arguments
@@ -1482,9 +1498,10 @@ def main():
     global anyextern
 
     decode_scope = 'static '
+    config = ""
 
     long_opts = ['decode=', 'translate=', 'output=', 'insnwidth=',
-                 'static-decode=', 'varinsnwidth=', 'hw', 'asm']
+                 'static-decode=', 'varinsnwidth=', 'hw', 'asm=']
     output_format = OutputFormat.C_Decoder
     try:
         (opts, args) = getopt.gnu_getopt(sys.argv[1:], 'o:vw:', long_opts)
@@ -1518,6 +1535,7 @@ def main():
             output_format = OutputFormat.HW
         elif o == '--asm':
             output_format = OutputFormat.ASM_BE
+            config = str(a)
         else:
             assert False, 'unhandled option'
 
@@ -1559,7 +1577,8 @@ def main():
     elif output_format == OutputFormat.HW:
         output_hw(decode_scope, toppat)
     elif output_format == OutputFormat.ASM_BE:
-        output_asm_be(decode_scope, toppat)
+        yaml = read_config(config)
+        output_asm_be(decode_scope, toppat, yaml)
 
     if output_file:
         output_fd.close()
