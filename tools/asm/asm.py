@@ -8,14 +8,14 @@ verbose = False
 vliw_insn = []
 
 class VLIWInstruction:
-    def __init__(self, addr, insns):
+    def __init__(self, addr, insns, be):
         self.insns = insns
         self.addr  = addr
-        self.insn_len = 16
+        self.insn_len = be.atomLen
 
     def resolve_br_labels(self, all_labels):
         for insn in self.insns:
-            if insn.is_branch():
+            if insn.has_label():
                 insn.resolve_br_label(all_labels, self.addr)
 
     def encode(self):
@@ -151,7 +151,7 @@ class Parser:
                 self.print_error("Unknown token '{}'".format(t))
 
         if len(insns) > 0: # we have a VLIW insn
-            vliw_insn.append(VLIWInstruction(self.current_addr, insns))
+            vliw_insn.append(VLIWInstruction(self.current_addr, insns, self.be))
             self.current_addr = self.current_addr + 4
 
 
