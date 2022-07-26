@@ -10,4 +10,5 @@
 start:
     LOAD_RESULT_ADDR(%11) 
     addi %2 %0 $2
-    jr %0 :start      | sw %2 %11 $0
+    # FIXME: Second parameter should be omited and be calculated by label
+    jr %0 %0 :start      | sw %2 %11 $0
