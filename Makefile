@@ -2,11 +2,15 @@ BASE_DIR   = $(abspath .)
 SRC_DIR    = $(BASE_DIR)/src/main
 GEN_DIR    = $(BASE_DIR)/generated-src
 OUT_DIR    = $(BASE_DIR)/outputs
+ISA_DIR    = $(SRC_DIR)/resources/isa
 
 SBT       = sbt
 SBT_FLAGS = -ivy $(BASE_DIR)/.ivy2
 VERILATOR ?= verilator
 VERILOG_TOP = $(GEN_DIR)/PykeTop.v
+
+ISA ?= pyke
+DECODETREE = python3 $(BASE_DIR)/tools/decoder/decodetree.py
 
 TOP_MODULE = PykeTop
 
@@ -27,8 +31,13 @@ VERILATOR_FLAGS = --cc --exe --top-module $(TOP_MODULE) \
 				  +define+RANDOMIZE_GARBAGE_ASSIGN \
 				  -O3
 
-.PHONY: emulator
+.PHONY: emulator asm
 emulator: $(EMULATOR)
+asm: $(BASE_DIR)/tools/asm/be.py
+
+$(BASE_DIR)/tools/asm/be.py: $(ISA_DIR)/$(ISA).decode $(ISA_DIR)/$(ISA).yml
+	$(DECODETREE) --asm=$(ISA_DIR)/$(ISA).yml --insnwidth=16 -o $@ $<
+
 
 $(EMULATOR): $(VERILOG_TOP) $(TB)
 	@mkdir -p $(SIM_DIR)
