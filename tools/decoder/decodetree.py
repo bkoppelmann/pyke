@@ -1469,7 +1469,6 @@ def output_asm_be_insn_arg_classes(decode_scope, toppat, yaml):
 def output_asm_be_insn_arg_class_encode(toppat, arg, yaml):
     output(str_indent(4), "def encode(self):\n")
     output(str_indent(8), "return ")
-    print(toppat.tree.thismask)
     for n in sorted(formats.keys()):
         f = formats[n]
         if f.name == arg.name:
