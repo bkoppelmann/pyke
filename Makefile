@@ -37,7 +37,7 @@ emulator: $(EMULATOR)
 asm: $(BASE_DIR)/tools/asm/be.py
 
 $(BASE_DIR)/tools/asm/be.py: $(ISA_DIR)/$(ISA).decode $(ISA_DIR)/$(ISA).yml
-	$(DECODETREE) --asm=$(ISA_DIR)/$(ISA).yml --insnwidth=16 -o $@ $<
+	$(DECODETREE) --asm=$(ISA_DIR)/$(ISA).yml -o $@ $<
 
 
 $(EMULATOR): $(VERILOG_TOP) $(TB)
