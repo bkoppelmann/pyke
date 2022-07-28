@@ -223,6 +223,11 @@ class Field:
         global bitop_width
         return f'(self.{field} << {self.pos})'
 
+    def str_encode_sub(self, field, offset):
+        mask = ((1 << self.len) - 1) << offset
+        pos = self.pos - offset
+        return f'((self.{field} & {mask}) << {pos})'
+
     def __eq__(self, other):
         return self.sign == other.sign and self.mask == other.mask
 
@@ -253,6 +258,17 @@ class MultiField:
                 ret = f'deposit{bitop_width}({ret}, {pos}, {bitop_width - pos}, {ext})'
             pos += f.len
         return ret
+
+    def str_encode(self, field):
+        global bitop_width
+        enc = []
+        pos = 0
+        for f in reversed(self.subs):
+            enc.append("(" + f.str_encode_sub(field, pos))
+            pos += f.len
+
+        return " | ".join(enc)
+
 
     def __ne__(self, other):
         if len(self.subs) != len(other.subs):
