@@ -18,15 +18,26 @@ object ConfigParser {
 class YamlConfig(@JsonProperty("isa") _isa: YamlIsaConfig,
                  @JsonProperty("decoder") _decoder: YamlDecoderConfig,
   ) {
-
+  require(_isa != null, "yaml: isa needs to be defined")
+  require(_decoder != null, "yaml: decoder needs to be defined")
+  val isa = _isa
+  val decoder = _decoder
 }
 
 class YamlIsaConfig (@JsonProperty("atomLen") _atomLen: Int,
                      @JsonProperty("atomPerInsn") _atomPerInsn: Int,
                      @JsonProperty("xLen") _xLen: Int) {
+  val atomLen = _atomLen
+  val pcIncr = _atomLen / 8
+  val atomsPerInsn = _atomPerInsn
+  val xLen = _xLen
 }
 
 class YamlDecoderConfig (@JsonProperty("imm_fields") _imm_fields: JList[String],
                          @JsonProperty("reg_fields") _reg_fields: JList[String],
                          @JsonProperty("label_fields") _label_fields: JList[String]) {
+  require(_imm_fields != null, "yaml: imm_fields needs to be defined")
+  require(_reg_fields != null, "yaml: reg_fields needs to be defined")
+  val immFields = _imm_fields
+  val regFields = _reg_fields
 }
