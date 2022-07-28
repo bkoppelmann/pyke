@@ -11,7 +11,11 @@ lazy val root = (project in file("."))
     name := "pyke",
     libraryDependencies ++= Seq(
       "edu.berkeley.cs" %% "chisel3" % chiselVersion,
-      "edu.berkeley.cs" %% "chiseltest" % "0.5.1" % "test"
+      "edu.berkeley.cs" %% "chiseltest" % "0.5.1" % "test",
+      "com.fasterxml.jackson.core" % "jackson-core" % "2.1.1",
+      "com.fasterxml.jackson.core" % "jackson-annotations" % "2.1.1",
+      "com.fasterxml.jackson.core" % "jackson-databind" % "2.1.1",
+      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-yaml" % "2.1.1"
     ),
     scalacOptions ++= Seq(
       "-language:reflectiveCalls",

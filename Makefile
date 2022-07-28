@@ -9,7 +9,8 @@ SBT_FLAGS = -ivy $(BASE_DIR)/.ivy2
 VERILATOR ?= verilator
 VERILOG_TOP = $(GEN_DIR)/PykeTop.v
 
-ISA ?= pyke
+ISA ?= pyke32
+CONFIG = $(ISA_DIR)/$(ISA).yml
 DECODETREE = python3 $(BASE_DIR)/tools/decoder/decodetree.py
 
 TOP_MODULE = PykeTop
@@ -17,7 +18,7 @@ TOP_MODULE = PykeTop
 compile: $(VERILOG_TOP)
 
 $(VERILOG_TOP): $(wildcard $(SRC_DIR)/scala/*.scala)
-	$(SBT) $(SBT_FLAGS) "run $(GEN_DIR)"
+	$(SBT) $(SBT_FLAGS) "run $(GEN_DIR) $(CONFIG)"
 
 # Testbench
 SIM_DIR = $(BASE_DIR)/sim
