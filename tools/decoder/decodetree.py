@@ -221,12 +221,14 @@ class Field:
 
     def str_encode(self, field):
         global bitop_width
-        return f'(self.{field} << {self.pos})'
+        qualifier = "int" if self.sign else "uint"
+        return f'(Bits({qualifier}=self.{field}, length={self.len}).uint << {self.pos})'
 
     def str_encode_sub(self, field, offset):
         mask = ((1 << self.len) - 1) << offset
         pos = self.pos - offset
-        return f'((self.{field} & {mask}) << {pos})'
+        qualifier = "int" if self.sign else "uint"
+        return f'((Bits({qualifier}=self.{field}, length={self.len} & {mask}) << {pos})'
 
     def __eq__(self, other):
         return self.sign == other.sign and self.mask == other.mask
@@ -1401,6 +1403,7 @@ def output_hw(decode_scope, toppat):
 def output_asm_be(decode_scope, toppat, yaml):
     output_autogen_python()
     output("import sys\n")
+    output("from bitstring import Bits\n")
     output("class Backend:\n")
     output("    def __init__(self, parser):\n")
     output("        self.parser = parser\n")
