@@ -1553,9 +1553,13 @@ def output_c_decoder(decode_scope, toppat):
         output('}\n')
 
 def read_config(c):
+    global insnwidth, insnmask
     with open(c, "r") as stream:
         try:
-            return yaml.safe_load(stream)
+            res = yaml.safe_load(stream)
+            insnwidth = res['isa']['atomLen']
+            insnmask = (1 << insnwidth) - 1
+            return res
         except yaml.YAMLError as exc:
             print(exc)
 
@@ -1621,6 +1625,10 @@ def main():
     if len(args) < 1:
         error(0, 'missing input file')
 
+    yaml = None
+    if output_format == OutputFormat.ASM_BE:
+        yaml = read_config(config)
+
     toppat = ExcMultiPattern(0)
 
     for filename in args:
@@ -1656,7 +1664,6 @@ def main():
     elif output_format == OutputFormat.HW:
         output_hw(decode_scope, toppat)
     elif output_format == OutputFormat.ASM_BE:
-        yaml = read_config(config)
         output_asm_be(decode_scope, toppat, yaml)
 
     if output_file:
