@@ -26,6 +26,7 @@ import re
 import sys
 import getopt
 import yaml
+import math
 from enum import Enum
 
 insnwidth = 32
@@ -374,8 +375,9 @@ class Arguments:
             else:
                 output(ind, "self.{0} = {0}\n".format(f))
 
-        label_fields = self.count_label_fields(yaml)
-        if label_fields != 0:
+        field_name = self.get_label_field(yaml)
+        if not field_name is None:
+            field = fields[field_name]
             output(str_indent(4), "def has_label(self):\n")
             output(str_indent(8), "return True\n")
 
@@ -383,14 +385,21 @@ class Arguments:
             output(ind, "if not self.label in all_labels:\n")
             output(str_indent(12), "self.print_error(\"Label {} not define\".format(self.label))\n")
             output(ind, "self.pc_off = all_labels[self.label].addr - addr\n")
-            output(ind, "if abs(self.pc_off) > {}:\n".format(2**3 << 2))
-            output(str_indent(12), "self.print_error(\"Branch to label \", self.label, \" cannot fit into imm\")\n")
 
-    def count_label_fields(self, yaml):
-        res = 0
+            size = field.len - 1 if field.sign else field.len
+            insn_byte_size = int(math.log2(yaml['isa']['atomLen'] * yaml['isa']['atomPerInsn'] / 8))
+            output(ind, "if abs(self.pc_off) >= {}:\n".format(2**size << insn_byte_size))
+            output(str_indent(12), "self.print_error(\"Branch to label \", self.label, \" cannot fit into imm\")\n")
+            output(str_indent(8), "self.pc_off = self.pc_off >> {}\n".format(insn_byte_size))
+
+    def get_label_field(self, yaml):
+        res = None
         for f in self.fields:
             if f in yaml['decoder']['label_fields']:
-                res += 1
+                if not res is None:
+                    print("ERROR: Only one labelfield is allowed. '{}' is the second".format(f))
+                    exit(1)
+                res = f
         return res
 
     def output_def(self):
