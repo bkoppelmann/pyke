@@ -11,7 +11,7 @@ class DebugOffChipIO()(implicit config:YamlConfig) extends Bundle {
 }
 class DebugIO()(implicit config:YamlConfig) extends Bundle {
     val off = new DebugOffChipIO()
-    val imem = Flipped(new ScratchPadPort(32))
+    val imem = Flipped(new ScratchPadPort(32, 32))
     val cpu_fetch_en = Output(Bool())
 }
 

@@ -2,39 +2,38 @@ package soc
 
 import chisel3._
 import chisel3.util.Cat
+import config.YamlConfig
 
-class ScratchPadRequest extends Bundle {
-  val addr: UInt = Input(UInt(32.W))
-  val data: UInt = Input(UInt(32.W))
+class ScratchPadRequest(addrWidth:Int, dataWidth:Int) extends Bundle {
+  val addr: UInt = Input(UInt(addrWidth.W))
+  val data: UInt = Input(UInt(dataWidth.W))
   val wr: Bool = Input(Bool())
-  val wr_mask = Vec(4, Input(Bool()))
+  val wr_mask = Vec(dataWidth/8, Input(Bool()))
   val valid: Bool = Input(Bool())
 }
 
-class ScratchPadResponse(dWidth:Int) extends Bundle {
-  val data: UInt = Output(UInt(dWidth.W))
+class ScratchPadResponse(dataWidth:Int) extends Bundle {
+  val data: UInt = Output(UInt(dataWidth.W))
   val rdy: Bool = Output(Bool())
 }
 
-class ScratchPadPort(dWidth:Int) extends Bundle {
-  val req = new ScratchPadRequest
-  val resp = new ScratchPadResponse(dWidth)
+class ScratchPadPort(addrWidth:Int, dataWidth:Int) extends Bundle {
+  val req = new ScratchPadRequest(addrWidth, dataWidth)
+  val resp = new ScratchPadResponse(dataWidth)
   val succ: UInt = Output(UInt(2.W))
 }
 
-class ScratchPad(size:Int, dWidth:Int, addr_offset:BigInt, wr_mask:Boolean) extends Module {
-  val io: ScratchPadPort = IO(new ScratchPadPort(dWidth))
+class ScratchPad(size:Int, addrWidth:Int, dataWidth:Int, addr_offset:BigInt, wr_mask:Boolean) extends Module {
+  assert(dataWidth % 8 == 0)
+  val io: ScratchPadPort = IO(new ScratchPadPort(addrWidth, dataWidth))
 
-  val masked_mem = Mem(size, Vec(4, UInt(8.W)))
-  val nonmasked = Mem(size, UInt(32.W))
+  val numBytes = dataWidth/8
+  val masked_mem = Mem(size, Vec(numBytes, UInt(8.W)))
+  val nonmasked = Mem(size, UInt(dataWidth.W))
 
   val addr = (io.req.addr - (addr_offset >> 2).U)(15,0)
 
-  val dataIn = Wire(Vec(4, UInt(8.W)))
-  dataIn(0) := io.req.data(7,0)
-  dataIn(1) := io.req.data(15,8)
-  dataIn(2) := io.req.data(23,16)
-  dataIn(3) := io.req.data(31,24)
+  val inputBytes = splitInputToBytes()
 
   io.resp.data := 0.U
   io.resp.rdy := false.B
@@ -42,7 +41,7 @@ class ScratchPad(size:Int, dWidth:Int, addr_offset:BigInt, wr_mask:Boolean) exte
   when(io.req.valid) {
     when (io.req.wr) {
       if (wr_mask) {
-        masked_mem.write(io.req.addr, dataIn, io.req.wr_mask)
+        masked_mem.write(io.req.addr, inputBytes, io.req.wr_mask)
       } else {
         nonmasked(addr) := io.req.data
       }
@@ -62,6 +61,17 @@ class ScratchPad(size:Int, dWidth:Int, addr_offset:BigInt, wr_mask:Boolean) exte
   } else {
     val read = nonmasked.read((size-1).U).asUInt
     io.succ := read(1, 0)
+  }
+
+  def splitInputToBytes() : Vec[UInt] = {
+    val res = Wire(Vec(numBytes, UInt(8.W)))
+    var byte = 0
+    for (byte <- 0 until numBytes) {
+      val h = (byte+1) * 8 - 1
+      val l = byte * 8
+      res(byte) := io.req.data(h, l)
+    }
+    res
   }
 }
 

@@ -8,7 +8,7 @@ import soc.ScratchPadPort
 import config.YamlConfig
 
 class LoadStoreUnitPorts()(implicit config:YamlConfig) extends Bundle {
-  val dmem = Flipped(new ScratchPadPort(32))
+  val dmem = Flipped(new ScratchPadPort(32, 32))
   val wr = Input(Bool())
   val r_data = Output(UInt(32.W))
   val wr_data = Input(UInt(32.W))

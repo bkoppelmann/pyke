@@ -13,7 +13,7 @@ class LaneIO()(implicit config:YamlConfig) extends Bundle {
   val pc = Input(UInt(32.W))
   val pc_plus4 = Input(UInt(32.W))
   val pc_next = Output(UInt(32.W))
-  val dmem = Flipped(new ScratchPadPort(32))
+  val dmem = Flipped(new ScratchPadPort(32, 32))
   val rfReadPorts = Flipped(Vec(2, new RFReadPortIO(16, 4)))
   val rfWritePort = Flipped(new RFWritePortIO(16, 4))
 }
