@@ -7,7 +7,7 @@
 # imm
 %imm_i 15:17
 %imm_s 20:12 5:5
-%imm_l 20:12 5:5 
+%imm_l 20:s12 5:5 
 
 &rrr rd rs1 rs2
 &rri rd rs1 imm_i

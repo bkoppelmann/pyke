@@ -7,7 +7,7 @@
 # imm
 %imm_i 12:4
 %imm_s 4:4
-%imm_l 4:4
+%imm_l 4:s4
 
 &rrr rd rs1 rs2
 &rri rd rs1 imm_i
