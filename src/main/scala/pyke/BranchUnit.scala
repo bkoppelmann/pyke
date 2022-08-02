@@ -2,10 +2,11 @@ package pyke
 
 import chisel3._
 import chisel3.util._
+import config.YamlConfig
 
 import Constants._
 
-class BranchUnitIO extends Bundle {
+class BranchUnitIO()(implicit config:YamlConfig) extends Bundle {
   val rs1 = Input(UInt(16.W))
   val rs2 = Input(UInt(16.W))
   val pc_plus4  = Input(UInt(32.W))
@@ -15,7 +16,7 @@ class BranchUnitIO extends Bundle {
   val out = Output(UInt(32.W))
 }
 
-class BranchUnit extends Module {
+class BranchUnit()(implicit config:YamlConfig) extends Module {
   val io = IO(new BranchUnitIO)
 
   /*

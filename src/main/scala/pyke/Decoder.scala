@@ -2,6 +2,7 @@ package pyke
 
 import chisel3._
 import chisel3.util._
+import config.YamlConfig
 
 import Constants._
 import Instructions._
@@ -19,12 +20,12 @@ class CtrlSignals extends Bundle {
 }
 
 
-class DecoderIO extends Bundle {
+class DecoderIO()(implicit config:YamlConfig) extends Bundle {
   val insn = Input(UInt(16.W))
   val ctrl = Output(new CtrlSignals)
 }
 
-class Decoder extends Module {
+class Decoder()(implicit config:YamlConfig) extends Module {
   val io = IO(new DecoderIO)
 
   val ctrlSignals = ListLookup(io.insn,

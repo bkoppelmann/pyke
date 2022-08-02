@@ -15,7 +15,7 @@ object Main extends App {
     args,
     Seq(
       ChiselGeneratorAnnotation(() =>
-        new PykeTop(ymlConfig)
+        new PykeTop()(ymlConfig)
       ),
       TargetDirAnnotation(targetDirectory)
     )

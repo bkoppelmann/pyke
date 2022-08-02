@@ -2,17 +2,18 @@ package pyke
 
 import chisel3._
 import chisel3.util._
+import config.YamlConfig
 
 import Constants._
 
-class ALUIO extends Bundle {
+class ALUIO()(implicit config:YamlConfig) extends Bundle {
   val in1 = Input(UInt(16.W))
   val in2 = Input(UInt(16.W))
   val out = Output(UInt(16.W))
   val op  = Input(UInt(aluop_width.W))
 }
 
-class ALUSimple extends Module {
+class ALUSimple()(implicit config:YamlConfig) extends Module {
 
   val io = IO(new ALUIO)
 

@@ -3,6 +3,7 @@ package pyke
 import chisel3._
 import chisel3.util._
 import soc.ScratchPadPort
+import config.YamlConfig
 
 import Constants._
 
@@ -12,7 +13,7 @@ class CoreIO extends Bundle {
   val fetch_en = Input(Bool())
 }
 
-class PykeCore extends Module {
+class PykeCore()(implicit config:YamlConfig) extends Module {
   val io: CoreIO = IO(new CoreIO())
 
   val rf    = Module(new RegisterFile(4, 2)) // 2 readPorts per Lane, 1 writePort per Lane times 2 Lanes

@@ -5,7 +5,7 @@ import chisel3.util._
 import config.YamlConfig
 import soc.{ScratchPad,ScratchPadRequest, DebugOffChipIO, DebugModule}
 
-class PykeTop(config: YamlConfig) extends Module {
+class PykeTop()(implicit config: YamlConfig) extends Module {
     val io = IO(new Bundle {
     // this indicates whether our testbench is successfull
     // 00 -> fail (simulation ended and software did neither write fail nor

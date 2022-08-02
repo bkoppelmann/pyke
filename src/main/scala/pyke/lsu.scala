@@ -5,8 +5,9 @@ import chisel3.util._
 import Constants._
 
 import soc.ScratchPadPort
+import config.YamlConfig
 
-class LoadStoreUnitPorts extends Bundle {
+class LoadStoreUnitPorts()(implicit config:YamlConfig) extends Bundle {
   val dmem = Flipped(new ScratchPadPort(32))
   val wr = Input(Bool())
   val r_data = Output(UInt(32.W))
@@ -15,7 +16,7 @@ class LoadStoreUnitPorts extends Bundle {
   val en = Input(Bool())
 }
 
-class LoadStoreUnit extends Module {
+class LoadStoreUnit()(implicit config:YamlConfig) extends Module {
   val io = IO(new LoadStoreUnitPorts)
 
 

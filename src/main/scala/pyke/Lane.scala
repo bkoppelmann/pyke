@@ -4,10 +4,11 @@ import chisel3._
 import chisel3.util._
 
 import soc.ScratchPadPort
+import config.YamlConfig
 
 import Constants._
 
-class LaneIO extends Bundle {
+class LaneIO()(implicit config:YamlConfig) extends Bundle {
   val insn = Input(UInt(16.W))
   val pc = Input(UInt(32.W))
   val pc_plus4 = Input(UInt(32.W))
@@ -17,7 +18,7 @@ class LaneIO extends Bundle {
   val rfWritePort = Flipped(new RFWritePortIO(16, 4))
 }
 
-class Lane(has_bru:Boolean, has_lsu:Boolean) extends Module {
+class Lane(has_bru:Boolean, has_lsu:Boolean)(implicit config:YamlConfig) extends Module {
   val io = IO(new LaneIO)
 
   val decoder = Module(new Decoder)

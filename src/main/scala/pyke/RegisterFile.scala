@@ -1,26 +1,27 @@
 package pyke
 
 import chisel3._
+import config.YamlConfig
 
-class RFReadPortIO(dataSize:Int, addrSize:Int) extends Bundle {
+class RFReadPortIO(dataSize:Int, addrSize:Int)(implicit config:YamlConfig) extends Bundle {
   val addr = Input(UInt(addrSize.W))
   val data = Output(UInt(dataSize.W))
   val en = Input(Bool())
 }
 
-class RFWritePortIO(dataSize:Int, addrSize:Int) extends Bundle {
+class RFWritePortIO(dataSize:Int, addrSize:Int)(implicit config:YamlConfig) extends Bundle {
   val addr = Input(UInt(addrSize.W))
   val data = Input(UInt(dataSize.W))
   val en = Input(Bool())
 }
 
 
-class RegisterFilePort(numReadPorts:Int, numWritePorts:Int) extends Bundle {
+class RegisterFilePort(numReadPorts:Int, numWritePorts:Int)(implicit config:YamlConfig) extends Bundle {
   val read_ports = Vec(numReadPorts, new RFReadPortIO(16, 4))
   val write_ports = Vec(numWritePorts, new RFWritePortIO(16, 4))
 }
 
-class RegisterFile(numReadPorts:Int, numWritePorts:Int) extends Module {
+class RegisterFile(numReadPorts:Int, numWritePorts:Int)(implicit config:YamlConfig) extends Module {
   val io:RegisterFilePort = IO(new RegisterFilePort(numReadPorts, numWritePorts))
 
   // x0 is hardwired to 0 so we don't allocate it.

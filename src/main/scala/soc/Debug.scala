@@ -2,19 +2,20 @@ package soc
 
 import chisel3._
 import chisel3.util.Cat
+import config.YamlConfig
 
-class DebugOffChipIO extends Bundle {
+class DebugOffChipIO()(implicit config:YamlConfig) extends Bundle {
     val imem_addr = Input(UInt(32.W))
     val imem_val  = Input(UInt(32.W))
     val fetch_en  = Input(Bool())
 }
-class DebugIO() extends Bundle {
+class DebugIO()(implicit config:YamlConfig) extends Bundle {
     val off = new DebugOffChipIO()
     val imem = Flipped(new ScratchPadPort(32))
     val cpu_fetch_en = Output(Bool())
 }
 
-class DebugModule() extends Module {
+class DebugModule()(implicit config:YamlConfig) extends Module {
     val io = IO(new DebugIO())
 
     io.cpu_fetch_en := io.off.fetch_en
