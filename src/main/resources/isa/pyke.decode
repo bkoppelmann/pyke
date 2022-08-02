@@ -11,12 +11,12 @@
 
 &rrr rd rs1 rs2
 &rri rd rs1 imm_i
-&rrs rs1 rs2 imm_s
+&rrs rs2 rs1 imm_s
 &rrl rs1 rs2 imm_l
 
 @rrr .... .... .... .... &rrr %rs2 %rs1 %rd
 @rri .... .... .... .... &rri %imm_i %rs1 %rd
-@rrs .... .... .... .... &rrs %imm_s %rs2 %rs1
+@rrs .... .... .... .... &rrs %imm_s %rs1 %rs2
 @rrl .... .... .... .... &rrl %imm_l %rs2 %rs1
 
 add  .... .... .... 0000 @rrr
