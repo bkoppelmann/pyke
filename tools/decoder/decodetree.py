@@ -249,6 +249,11 @@ class MultiField:
     def __str__(self):
         return str(self.subs)
 
+    @property
+    def len(self):
+        return sum(s.len for s in self.subs)
+
+
     def str_extract(self):
         global bitop_width
         ret = '0'
@@ -490,8 +495,8 @@ class Pattern(General):
         output(ind, 'if (', translate_prefix, '_', self.name,
                '(ctx, &u.f_', arg, ')) return true;\n')
 
-    def output_encoding(self, ind, outermask, outerbits, i):
-        output("\n", ind, "'{}' : 0b0".format(self.name))
+    def output_encoding(self, ind, depth): # depth is for matching the recursion on trees
+        output("\n", ind, "'{}' : ".format(self.name))
 
     # Normal patterns do not have children.
     def build_tree(self):
@@ -639,7 +644,7 @@ class Tree:
         ind = str_indent(i+4)
         output(ind, "mapping = {")
         ind = str_indent(i+8)
-        self.output_encoding(ind, outermask, outerbits, i)
+        self.output_encoding(ind)
         ind = str_indent(i+4)
         output("\n", ind, "}\n")
         output(ind, "return mapping[self.op]\n")
@@ -652,12 +657,14 @@ class Tree:
         elif type(self.subs[i][1]) is Tree:
             return self.subs[i][1].get_pattern(i)
 
-    def output_encoding(self, ind, outermask, outerbits, i):
-        innermask = outermask | self.thismask
-        innerbits = outerbits | i
+    def output_encoding(self, ind, depth=0):
         for b, s in self.subs:
-            s.output_encoding(ind, innermask, innerbits, i)
-            output(" | ", bin(b), ",")
+            s.output_encoding(ind, depth+1)
+
+            if depth == 0:
+                output(bin(b), ",")
+            else:
+                output(bin(b), " | ")
 
     def output_code(self, i, extracted, outerbits, outermask):
         ind = str_indent(i)
