@@ -32,9 +32,11 @@ VERILATOR_FLAGS = --cc --exe --top-module $(TOP_MODULE) \
 				  +define+RANDOMIZE_GARBAGE_ASSIGN \
 				  -O3
 
-.PHONY: emulator asm
+.PHONY: emulator asm asm_clean
 emulator: $(EMULATOR)
 asm: $(BASE_DIR)/tools/asm/be.py
+clean_asm:
+	rm -f $(BASE_DIR)/tools/asm/be.py
 
 $(BASE_DIR)/tools/asm/be.py: $(ISA_DIR)/$(ISA).decode $(ISA_DIR)/$(ISA).yml
 	$(DECODETREE) --asm=$(ISA_DIR)/$(ISA).yml -o $@ $<
@@ -46,7 +48,7 @@ $(EMULATOR): $(VERILOG_TOP) $(TB)
 	$(MAKE) -C $(SIM_DIR) -f V$(TOP_MODULE).mk
 
 .PHONY: clean
-clean:
+clean: clean_asm
 	rm -rf $(GEN_DIR)/*
 	rm -rf $(SIM_DIR)/*
 
