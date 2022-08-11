@@ -8,11 +8,11 @@ import soc.ScratchPadPort
 import config.YamlConfig
 
 class LoadStoreUnitPorts()(implicit config:YamlConfig) extends Bundle {
-  val dmem = Flipped(new ScratchPadPort(32, 32))
+  val dmem = Flipped(new ScratchPadPort(config.isa.xLen, config.isa.xLen))
   val wr = Input(Bool())
-  val r_data = Output(UInt(32.W))
-  val wr_data = Input(UInt(32.W))
-  val addr = Input(UInt(32.W))
+  val r_data = Output(UInt(config.isa.xLen.W))
+  val wr_data = Input(UInt(config.isa.xLen.W))
+  val addr = Input(UInt(config.isa.xLen.W))
   val en = Input(Bool())
 }
 
@@ -29,7 +29,7 @@ class LoadStoreUnit()(implicit config:YamlConfig) extends Module {
   io.dmem.req.wr_mask  := DontCare
   io.dmem.resp.data    := DontCare
 
-  io.r_data := 0xdead.U(32.W)
+  io.r_data := 0xdead.U(config.isa.xLen.W)
 
   // access memory
   io.dmem.req.addr := io.addr(31, 2)
@@ -38,7 +38,7 @@ class LoadStoreUnit()(implicit config:YamlConfig) extends Module {
   when(io.wr) { // store
     io.dmem.req.wr := true.B
     io.dmem.req.data := io.wr_data
-    io.dmem.req.wr_mask := VecInit(true.B, true.B, true.B, true.B)
+    io.dmem.req.wr_mask := VecInit(Seq.fill(config.isa.xLen/8)(true.B))
   } .otherwise { // load
     when (io.dmem.resp.rdy) {
         io.r_data := io.dmem.resp.data

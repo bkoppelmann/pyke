@@ -7,9 +7,9 @@ import config.YamlConfig
 
 import Constants._
 
-class CoreIO extends Bundle {
-  val imem = Flipped(new ScratchPadPort(32, 32))
-  val dmem = Flipped(new ScratchPadPort(32, 32))
+class CoreIO()(implicit config:YamlConfig) extends Bundle {
+  val imem = Flipped(new ScratchPadPort(config.isa.xLen, config.isa.insnLen))
+  val dmem = Flipped(new ScratchPadPort(config.isa.xLen, config.isa.xLen))
   val fetch_en = Input(Bool())
 }
 
