@@ -18,6 +18,50 @@ class LaneIO()(implicit config:YamlConfig) extends Bundle {
   val rfWritePort = Flipped(new RFWritePortIO(16, 4))
 }
 
+object Lane {
+
+  def createFromName(name:String)(implicit config:YamlConfig) : Option[Lane] = {
+    name match {
+      case "ALULane" => Some(ALULane(config))
+      case "MemALULane" => Some(MemALULane(config))
+      case "BranchALULane" => Some(BranchMemALULane(config))
+      case "BranchMemALULane" => Some(BranchMemALULane(config))
+      case _ =>  None
+    }
+  }
+}
+
+object ALULane {
+  def apply(implicit config:YamlConfig) : Lane = {
+    val res = Module(new Lane(false, false))
+    res.io.dmem := DontCare
+    res
+  }
+}
+
+object MemALULane {
+  def apply(implicit config:YamlConfig) : Lane = {
+    println("Create MemALU")
+    Module(new Lane(false, true))
+  }
+}
+
+object BranchALULane {
+  def apply(implicit config:YamlConfig) : Lane = {
+    println("Create BranchALU")
+    val res = Module(new Lane(true, false))
+    res.io.dmem := DontCare
+    res
+  }
+}
+
+object BranchMemALULane {
+  def apply(implicit config:YamlConfig) : Lane = {
+    val res = Module(new Lane(true, true))
+    res
+  }
+}
+
 class Lane(has_bru:Boolean, has_lsu:Boolean)(implicit config:YamlConfig) extends Module {
   val io = IO(new LaneIO)
 
@@ -102,4 +146,8 @@ class Lane(has_bru:Boolean, has_lsu:Boolean)(implicit config:YamlConfig) extends
   io.rfWritePort.addr := rd_addr
   io.rfWritePort.data := wb
   io.rfWritePort.en   := ctrl.wr_reg
+
+
+  def has_bru() : Boolean = has_bru
+  def has_lsu() : Boolean = has_lsu
 }

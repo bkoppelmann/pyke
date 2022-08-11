@@ -8,3 +8,6 @@ decoder:
   imm_fields: ["imm_i", "imm_s"]
   reg_fields: ["rd", "rs1", "rs2"]
   label_fields: ["imm_l"]
+
+hw:
+  lanes: ["BranchALULane", "MemALULane"]

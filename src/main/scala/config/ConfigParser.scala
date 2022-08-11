@@ -5,6 +5,7 @@ import collection.JavaConverters._
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.databind.ObjectMapper
+import collection.JavaConverters._
 
 object ConfigParser {
   def parse(filepath: String):YamlConfig = {
@@ -17,11 +18,14 @@ object ConfigParser {
 
 class YamlConfig(@JsonProperty("isa") _isa: YamlIsaConfig,
                  @JsonProperty("decoder") _decoder: YamlDecoderConfig,
+                 @JsonProperty("hw") _hw: YamlHWConfig,
   ) {
   require(_isa != null, "yaml: isa needs to be defined")
   require(_decoder != null, "yaml: decoder needs to be defined")
+  require(_hw != null, "yaml: hw needs to be defined")
   val isa = _isa
   val decoder = _decoder
+  val hw = _hw
 }
 
 class YamlIsaConfig (@JsonProperty("atomLen") _atomLen: Int,
@@ -40,4 +44,9 @@ class YamlDecoderConfig (@JsonProperty("imm_fields") _imm_fields: JList[String],
   require(_reg_fields != null, "yaml: reg_fields needs to be defined")
   val immFields = _imm_fields
   val regFields = _reg_fields
+}
+
+class YamlHWConfig (@JsonProperty("lanes") _lanes: JList[String]) {
+  require(_lanes != null, "yaml: lanes needs to be defined")
+  val lanes = _lanes.asScala
 }
