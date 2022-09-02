@@ -19,6 +19,7 @@
 static uint64_t trace_count = 0;
 static uint8_t verbose = 0;
 static char *imem_path = NULL;
+static int insn_len;
 
 double sc_time_stamp()
 {
@@ -54,7 +55,7 @@ int verbose_printf( const char *fmt, ...)
     return ret;
 }
 
-void preload_imem(VTop *top, VerilatedVcdC *tfp, char* path)
+void preload_imem(VTop *top, VerilatedVcdC *tfp, char* path, int insn_len)
 {
     FILE *f = fopen(path, "r");
     char *line = NULL;
@@ -76,7 +77,7 @@ void preload_imem(VTop *top, VerilatedVcdC *tfp, char* path)
     cycle_clock(top, tfp);
 
     while ((read = getline(&line, &len, f)) != -1) {
-        top->io_debug_imem_addr += 4;
+        top->io_debug_imem_addr += insn_len;
         top->io_debug_imem_val = strtol(line, NULL, 16);
         cycle_clock(top, tfp);
     }
@@ -121,7 +122,7 @@ void parse_args(VTop *top, ,int argc, char **argv)
 #endif
 {
     int opt;
-    while((opt=getopt(argc, argv, "i:d:v:")) != -1) {
+    while((opt=getopt(argc, argv, "i:d:l:v:")) != -1) {
         switch(opt) {
         case 'i':
             imem_path = (char*)malloc(256*sizeof(char));
@@ -129,6 +130,9 @@ void parse_args(VTop *top, ,int argc, char **argv)
             break;
         case 'd':
             preload_dmem(top, optarg);
+            break;
+        case 'l':
+            insn_len = strtol(optarg, NULL, 10);
             break;
         case 'v':
 #ifdef VM_TRACE
@@ -189,7 +193,7 @@ int main(int argc, char **argv)
     parse_args(top, argc, argv);
 #endif
     if (imem_path != NULL) {
-        preload_imem(top, tfp, imem_path);
+        preload_imem(top, tfp, imem_path, insn_len);
     }
 
     reset(top, tfp);
