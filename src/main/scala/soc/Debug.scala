@@ -1,7 +1,7 @@
 package soc
 
 import chisel3._
-import chisel3.util.Cat
+import chisel3.util.{Cat, log2Ceil}
 import config.YamlConfig
 
 class DebugOffChipIO()(implicit config:YamlConfig) extends Bundle {
@@ -20,7 +20,7 @@ class DebugModule()(implicit config:YamlConfig) extends Module {
 
     io.cpu_fetch_en := io.off.fetch_en
 
-    io.imem.req.addr      := io.off.imem_addr(31,2)
+    io.imem.req.addr      := io.off.imem_addr >> log2Ceil(config.isa.insnLenBytes)
     io.imem.req.valid     := true.B
     io.imem.req.wr        := true.B
     io.imem.req.wr_mask   := Seq.fill(config.isa.insnLen / 8)(true.B)

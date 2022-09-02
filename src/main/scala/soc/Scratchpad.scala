@@ -1,7 +1,7 @@
 package soc
 
 import chisel3._
-import chisel3.util.Cat
+import chisel3.util.{Cat, log2Ceil}
 import config.YamlConfig
 
 class ScratchPadRequest(addrWidth:Int, dataWidth:Int) extends Bundle {
@@ -31,7 +31,8 @@ class ScratchPad(size:Int, addrWidth:Int, dataWidth:Int, addr_offset:BigInt, wr_
   val masked_mem = Mem(size, Vec(numBytes, UInt(8.W)))
   val nonmasked = Mem(size, UInt(dataWidth.W))
 
-  val addr = (io.req.addr - (addr_offset >> 2).U)(15,0)
+  val addrOffScaledtoDataWidth = (addr_offset >> log2Ceil(dataWidth/8))
+  val addr = (io.req.addr - addrOffScaledtoDataWidth.asUInt)
 
   val inputBytes = splitInputToBytes()
 
