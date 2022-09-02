@@ -41,6 +41,7 @@ class PykeCore()(implicit config:YamlConfig) extends Module {
     Lane.createFromName(name) match {
       case Some(lane) => {
 
+        lane.suggestName(s"lane_$index")
         lane.io.insn := Mux(!io.fetch_en, NOP, extractAtom(index, insn))
         lanes :+ lane
         lane.io.pc := pc
