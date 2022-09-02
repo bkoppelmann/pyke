@@ -9,7 +9,7 @@ import config.YamlConfig
 import Constants._
 
 class LaneIO()(implicit config:YamlConfig) extends Bundle {
-  val insn = Input(UInt(16.W))
+  val insn = Input(UInt(config.isa.atomLen.W))
   val pc = Input(UInt(32.W))
   val pc_plus4 = Input(UInt(32.W))
   val pc_next = Output(UInt(32.W))
