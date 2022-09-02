@@ -73,7 +73,7 @@ void preload_imem(VTop *top, VerilatedVcdC *tfp, char* path, int insn_len)
     verbose_printf("------------------------\n\n");
 
     top->io_debug_fetch_en = 0;
-    top->io_debug_imem_addr = 0x8000;
+    top->io_debug_imem_addr = 0x8000 - insn_len;
     cycle_clock(top, tfp);
 
     while ((read = getline(&line, &len, f)) != -1) {
