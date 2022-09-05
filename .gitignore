@@ -346,6 +346,7 @@ __pycache__/
 .ivy2/
 .metals
 project/metals.sbt
+project/project
 
 # generated verilog
 generated-src/*
