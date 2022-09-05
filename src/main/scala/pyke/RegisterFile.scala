@@ -17,8 +17,8 @@ class RFWritePortIO(dataSize:Int, addrSize:Int)(implicit config:YamlConfig) exte
 
 
 class RegisterFilePort(numReadPorts:Int, numWritePorts:Int)(implicit config:YamlConfig) extends Bundle {
-  val read_ports = Vec(numReadPorts, new RFReadPortIO(16, 4))
-  val write_ports = Vec(numWritePorts, new RFWritePortIO(16, 4))
+  val read_ports = Vec(numReadPorts, new RFReadPortIO(config.isa.xLen, config.isa.regAddrSize))
+  val write_ports = Vec(numWritePorts, new RFWritePortIO(config.isa.xLen, config.isa.regAddrSize))
 }
 
 class RegisterFile(numReadPorts:Int, numWritePorts:Int)(implicit config:YamlConfig) extends Module {
@@ -26,7 +26,7 @@ class RegisterFile(numReadPorts:Int, numWritePorts:Int)(implicit config:YamlConf
 
   // x0 is hardwired to 0 so we don't allocate it.
   // Thus x1 is equal to mem(0), x2 is equal to mem(1) and so on..
-  val mem = Mem(15, UInt(16.W))
+  val mem = Mem(config.isa.numRegs, UInt(config.isa.xLen.W))
 
   // write ports
   for (i <- 0 until numWritePorts) {

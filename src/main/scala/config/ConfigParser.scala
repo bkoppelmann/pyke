@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory
 import com.fasterxml.jackson.databind.ObjectMapper
 import collection.JavaConverters._
+import chisel3.util.log2Ceil
 
 object ConfigParser {
   def parse(filepath: String):YamlConfig = {
@@ -30,13 +31,16 @@ class YamlConfig(@JsonProperty("isa") _isa: YamlIsaConfig,
 
 class YamlIsaConfig (@JsonProperty("atomLen") _atomLen: Int,
                      @JsonProperty("atomPerInsn") _atomPerInsn: Int,
-                     @JsonProperty("xLen") _xLen: Int) {
+                     @JsonProperty("xLen") _xLen: Int,
+                     @JsonProperty("numRegsWithZero") _numRegsWithZero: Int) {
   val atomLen = _atomLen
   val pcIncr = _atomLen / 8
   val atomsPerInsn = _atomPerInsn
   val insnLen = atomLen * atomsPerInsn
   val insnLenBytes = insnLen / 8
   val xLen = _xLen
+  val numRegs = _numRegsWithZero-1
+  val regAddrSize = log2Ceil(_numRegsWithZero)
 }
 
 class YamlDecoderConfig (@JsonProperty("imm_fields") _imm_fields: JList[String],

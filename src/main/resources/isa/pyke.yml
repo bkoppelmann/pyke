@@ -3,6 +3,7 @@ isa:
   atomPerInsn: 2
 
   xLen: 16
+  numRegsWithZero: 16
 
 decoder:
   imm_fields: ["imm_i", "imm_s"]
