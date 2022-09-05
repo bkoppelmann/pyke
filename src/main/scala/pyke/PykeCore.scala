@@ -19,13 +19,13 @@ class PykeCore()(implicit config:YamlConfig) extends Module {
   val rf    = Module(new RegisterFile(4, 2)) // 2 readPorts per Lane, 1 writePort per Lane times 2 Lanes
   var lanes :List[Lane] = List()
 
-  val pc = RegInit(0x8000L.U(32.W))
+  val pc = RegInit(0x8000L.U(config.isa.xLen.W))
   val pc_plus4 = pc + 4.U
 
  /*
   * fetch
   */
-  io.imem.req.addr    := pc(31, 2)
+ io.imem.req.addr    := pc >> log2Ceil(config.isa.insnLenBytes)
   io.imem.req.valid   := true.B
   io.imem.req.wr      := false.B
   io.imem.req.wr_mask := DontCare

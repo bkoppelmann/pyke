@@ -21,7 +21,7 @@ class CtrlSignals extends Bundle {
 
 
 class DecoderIO()(implicit config:YamlConfig) extends Bundle {
-  val insn = Input(UInt(16.W))
+  val insn = Input(UInt(config.isa.atomLen.W))
   val ctrl = Output(new CtrlSignals)
 }
 
