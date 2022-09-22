@@ -20,7 +20,7 @@ class PykeCore()(implicit config:YamlConfig) extends Module {
   var lanes :List[Lane] = List()
 
   val pc = RegInit(0x8000L.U(config.isa.xLen.W))
-  val pc_plus4 = pc + 4.U
+  val pc_plusX = pc + config.isa.pcIncr.U
 
  /*
   * fetch
@@ -45,7 +45,7 @@ class PykeCore()(implicit config:YamlConfig) extends Module {
         lane.io.insn := Mux(!io.fetch_en, NOP, extractAtom(index, insn))
         lanes :+ lane
         lane.io.pc := pc
-        lane.io.pc_plus4 := Mux(!io.fetch_en, pc, pc_plus4)
+        lane.io.pc_plusX := Mux(!io.fetch_en, pc, pc_plusX)
 
         lane.io.rfReadPorts(0) <> rf.io.read_ports(index * 2)
         lane.io.rfReadPorts(1) <> rf.io.read_ports(index * 2 + 1)

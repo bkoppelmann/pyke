@@ -11,7 +11,7 @@ import Constants._
 class LaneIO()(implicit config:YamlConfig) extends Bundle {
   val insn = Input(UInt(config.isa.atomLen.W))
   val pc = Input(UInt(32.W))
-  val pc_plus4 = Input(UInt(32.W))
+  val pc_plusX = Input(UInt(32.W))
   val pc_next = Output(UInt(32.W))
   val dmem = Flipped(new ScratchPadPort(32, 32))
   val rfReadPorts = Flipped(Vec(2, new RFReadPortIO(16, 4)))
@@ -110,13 +110,13 @@ class Lane(has_bru:Boolean, has_lsu:Boolean)(implicit config:YamlConfig) extends
 
   if (has_bru) {
     val bru = Module(new BranchUnit)
-    io.pc_next := Mux(ctrl.br =/= BR_N, bru.io.out, io.pc_plus4)
+    io.pc_next := Mux(ctrl.br =/= BR_N, bru.io.out, io.pc_plusX)
 
     bru.io.br_target := io.pc + io.insn(7,4)
     bru.io.jal_target := rs1 + io.insn(15,12)
     bru.io.rs1 := rs1
     bru.io.rs2 := rs2
-    bru.io.pc_plus4 := io.pc_plus4
+    bru.io.pc_plusX := io.pc_plusX
     bru.io.ctrl := ctrl.br
   } else {
     io.pc_next := DontCare
