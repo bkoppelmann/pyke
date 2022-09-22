@@ -12,7 +12,7 @@ TEST_HEX = $(addprefix $(TEST_BUILD_DIR)/,$(patsubst %.S, %.hex, $(TESTS)))
 .PRECIOUS: $(TEST_BUILD_DIR)/%.hex $(TEST_BUILD_DIR)/%.s
 
 .PHONY: tests clean_tests
-tests: $(TEST_BUILD_DIR) $(TEST_VCD)
+tests: $(TEST_BUILD_DIR) $(TEST_VCD) $(ASM_BE)
 
 $(TEST_BUILD_DIR):
 	@mkdir -p $(TEST_BUILD_DIR)

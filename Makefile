@@ -21,6 +21,8 @@ GEN_SCALA_SRCS = $(SRC_DIR)/scala/pyke/Instructions.scala
 SCALA_SRCS += $(GEN_SCALA_SRCS)
 compile: $(VERILOG_TOP)
 
+ASM_BE = $(BASE_DIR)/tools/asm/be.py
+
 gen_hw: $(GEN_SCALA_SRCS)
 $(GEN_SCALA_SRCS): $(DECODETREE_FILE)
 	$(DECODETREE) --hw=$(CONFIG) -o $@ $<
@@ -42,18 +44,18 @@ VERILATOR_FLAGS = --cc --exe --top-module $(TOP_MODULE) \
 
 .PHONY: emulator asm asm_clean
 emulator: $(EMULATOR)
-asm: $(BASE_DIR)/tools/asm/be.py
+asm: $(ASM_BE)
 clean_asm:
-	rm -f $(BASE_DIR)/tools/asm/be.py
+	rm -f $(ASM_BE)
 
-$(BASE_DIR)/tools/asm/be.py: $(DECODETREE_FILE) $(ISA_DIR)/$(ISA).yml
+$(ASM_BE): $(DECODETREE_FILE) $(ISA_DIR)/$(ISA).yml
 	$(DECODETREE) --asm=$(ISA_DIR)/$(ISA).yml -o $@ $<
 
 
 $(EMULATOR): $(VERILOG_TOP) $(TB)
 	@mkdir -p $(SIM_DIR)
 	$(VERILATOR) $(VERILATOR_FLAGS) -CFLAGS "-I$(SIM_DIR)" -Mdir $(SIM_DIR) -o $@ $^
-	$(MAKE) -C $(SIM_DIR) -f V$(TOP_MODULE).mk
+	$(MAKE) -C $(SIM_DIR) -f V$(TOP_MODULE).mk -j
 
 .PHONY: clean
 clean: clean_asm
