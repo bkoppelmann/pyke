@@ -12,12 +12,20 @@ VERILOG_TOP = $(GEN_DIR)/PykeTop.v
 ISA ?= pyke32
 CONFIG = $(ISA_DIR)/$(ISA).yml
 DECODETREE = python3 $(BASE_DIR)/tools/decoder/decodetree.py
+DECODETREE_FILE = $(ISA_DIR)/$(ISA).decode
 
 TOP_MODULE = PykeTop
 
+SCALA_SRCS = $(shell find $(SRC_DIR) -iname "*.scala")
+GEN_SCALA_SRCS = $(SRC_DIR)/scala/pyke/Instructions.scala
+SCALA_SRCS += $(GEN_SCALA_SRCS)
 compile: $(VERILOG_TOP)
 
-$(VERILOG_TOP): $(wildcard $(SRC_DIR)/scala/*.scala)
+gen_hw: $(GEN_SCALA_SRCS)
+$(GEN_SCALA_SRCS): $(DECODETREE_FILE)
+	$(DECODETREE) --hw=$(CONFIG) -o $@ $<
+
+$(VERILOG_TOP): $(SCALA_SRCS)
 	$(SBT) $(SBT_FLAGS) "run $(GEN_DIR) $(CONFIG)"
 
 # Testbench
@@ -38,7 +46,7 @@ asm: $(BASE_DIR)/tools/asm/be.py
 clean_asm:
 	rm -f $(BASE_DIR)/tools/asm/be.py
 
-$(BASE_DIR)/tools/asm/be.py: $(ISA_DIR)/$(ISA).decode $(ISA_DIR)/$(ISA).yml
+$(BASE_DIR)/tools/asm/be.py: $(DECODETREE_FILE) $(ISA_DIR)/$(ISA).yml
 	$(DECODETREE) --asm=$(ISA_DIR)/$(ISA).yml -o $@ $<
 
 

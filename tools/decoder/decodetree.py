@@ -229,7 +229,7 @@ class Field:
         mask = ((1 << self.len) - 1) << offset
         pos = self.pos - offset
         qualifier = "int" if self.sign else "uint"
-        return f'((Bits({qualifier}=self.{field}, length={self.len} & {mask}) << {pos})'
+        return f'(Bits({qualifier}=self.{field} & {mask}, length={self.len}).uint << {pos})'
 
     def __eq__(self, other):
         return self.sign == other.sign and self.mask == other.mask
@@ -272,7 +272,7 @@ class MultiField:
         enc = []
         pos = 0
         for f in reversed(self.subs):
-            enc.append("(" + f.str_encode_sub(field, pos))
+            enc.append(f.str_encode_sub(field, pos))
             pos += f.len
 
         return " | ".join(enc)
@@ -479,8 +479,10 @@ class Pattern(General):
         output(translate_scope, 'bool ', translate_prefix, '_', self.name,
                '(DisasContext *ctx, arg_', self.name, ' *a);\n')
 
-    def output_hw(self, i, extracted, outerbits, outermask):
-        pass
+    def output_hw(self, i, extracted, outerbits, outermask, yaml):
+        ind = str_indent(i)
+        bitpat = str_match_bits(outerbits, outermask, '?', '')
+        output(ind, "def ", self.name.upper() ," = BitPat(\"", bitpat , "\")\n")
 
     def output_code(self, i, extracted, outerbits, outermask):
         global translate_prefix
@@ -497,6 +499,12 @@ class Pattern(General):
 
     def output_encoding(self, ind, depth): # depth is for matching the recursion on trees
         output("\n", ind, "'{}' : ".format(self.name))
+
+    def output_hw_recursive(self, i, extracted, outerbits, outermask, depth):
+        ind = str_indent(depth*4)
+        ind = str_indent(i)
+        output(ind, "def ", self.name.upper() ," = BitPat(\"b")
+        output(str_match_bits(outerbits, outermask, '?', ''))
 
     # Normal patterns do not have children.
     def build_tree(self):
@@ -631,12 +639,18 @@ class Tree:
         return self.str1(0)
 
 
-    def output_hw(self, i, extracted, outerbits, outermask):
+    def output_hw(self, i, extracted, outerbits, outermask, yaml):
         ind = str_indent(i)
-        for i, s in self.subs:
+        self.output_hw_recursive(i, extracted, outerbits, outermask, 0)
+
+    def output_hw_recursive(self, i, extracted, outerbits, outermask, depth):
+        ind = str_indent(depth *4)
+        for b, s in self.subs:
             innermask = outermask | self.thismask
-            innerbits = outerbits | i
-            output(ind, "def ", s.name.upper() ," = BitPat(\"", str_match_bits(innerbits, innermask, '?', ''), "\")\n")
+            innerbits = outerbits | b
+            s.output_hw_recursive(i, extracted, innerbits, innermask, depth+1)
+            if depth == 0:
+                output("\")\n")
 
     def output_asm_be_encode(self, i, extracted, outerbits, outermask):
         ind = str_indent(i)
@@ -714,8 +728,8 @@ class ExcMultiPattern(MultiPattern):
         # Defer everything to our decomposed Tree node
         self.tree.output_code(i, extracted, outerbits, outermask)
 
-    def output_hw(self, i, extracted, outerbits, outermask):
-        self.tree.output_hw(i, extracted, outerbits, outermask)
+    def output_hw(self, i, extracted, outerbits, outermask, yaml):
+        self.tree.output_hw(i, extracted, outerbits, outermask, yaml)
 
     @staticmethod
     def __build_tree(pats, outerbits, outermask):
@@ -1407,13 +1421,13 @@ def prop_size(tree):
 # end prop_size
 
 
-def output_hw(decode_scope, toppat):
+def output_hw(decode_scope, toppat, yaml):
     output_autogen()
     output("package pyke\n")
     output("import chisel3.util.BitPat\n")
     output("object Instructions {\n")
     if len(allpatterns) != 0:
-        toppat.output_hw(4, False, 0, 0)
+        toppat.output_hw(4, False, 0, 0, yaml)
     output("}\n")
 
 def output_asm_be(decode_scope, toppat, yaml):
@@ -1603,7 +1617,7 @@ def main():
     config = ""
 
     long_opts = ['decode=', 'translate=', 'output=', 'insnwidth=',
-                 'static-decode=', 'varinsnwidth=', 'hw', 'asm=']
+                 'static-decode=', 'varinsnwidth=', 'hw=', 'asm=']
     output_format = OutputFormat.C_Decoder
     try:
         (opts, args) = getopt.gnu_getopt(sys.argv[1:], 'o:vw:', long_opts)
@@ -1635,6 +1649,7 @@ def main():
                 error(0, 'cannot handle insns of width', insnwidth)
         elif o == '--hw':
             output_format = OutputFormat.HW
+            config = str(a)
         elif o == '--asm':
             output_format = OutputFormat.ASM_BE
             config = str(a)
@@ -1645,7 +1660,7 @@ def main():
         error(0, 'missing input file')
 
     yaml = None
-    if output_format == OutputFormat.ASM_BE:
+    if output_format == OutputFormat.ASM_BE or output_format == OutputFormat.HW:
         yaml = read_config(config)
 
     toppat = ExcMultiPattern(0)
@@ -1681,7 +1696,7 @@ def main():
     if output_format == OutputFormat.C_Decoder:
         output_c_decoder(decode_scope, toppat)
     elif output_format == OutputFormat.HW:
-        output_hw(decode_scope, toppat)
+        output_hw(decode_scope, toppat, yaml)
     elif output_format == OutputFormat.ASM_BE:
         output_asm_be(decode_scope, toppat, yaml)
 
