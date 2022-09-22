@@ -34,9 +34,9 @@ class YamlIsaConfig (@JsonProperty("atomLen") _atomLen: Int,
                      @JsonProperty("xLen") _xLen: Int,
                      @JsonProperty("numRegsWithZero") _numRegsWithZero: Int) {
   val atomLen = _atomLen
-  val pcIncr = _atomLen / 8
   val atomsPerInsn = _atomPerInsn
   val insnLen = atomLen * atomsPerInsn
+  val pcIncr = insnLen / 8
   val insnLenBytes = insnLen / 8
   val xLen = _xLen
   val numRegs = _numRegsWithZero-1
