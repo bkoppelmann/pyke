@@ -44,12 +44,15 @@ class YamlIsaConfig (@JsonProperty("atomLen") _atomLen: Int,
 }
 
 class YamlDecoderConfig (@JsonProperty("imm_fields") _imm_fields: JList[String],
-                         @JsonProperty("reg_fields") _reg_fields: JList[String],
+                         @JsonProperty("reg_src_fields") _reg_src_fields: JList[String],
+                         @JsonProperty("reg_dst_fields") _reg_dst_fields: JList[String],
                          @JsonProperty("label_fields") _label_fields: JList[String]) {
   require(_imm_fields != null, "yaml: imm_fields needs to be defined")
-  require(_reg_fields != null, "yaml: reg_fields needs to be defined")
+  require(_reg_src_fields != null, "yaml: reg_src_fields needs to be defined")
+  require(_reg_dst_fields != null, "yaml: reg_dst_fields needs to be defined")
   val immFields = _imm_fields
-  val regFields = _reg_fields
+  val regSrcFields = _reg_src_fields
+  val regDstFields = _reg_dst_fields
 }
 
 class YamlHWConfig (@JsonProperty("lanes") _lanes: JList[String]) {

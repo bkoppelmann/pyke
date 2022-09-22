@@ -1473,7 +1473,9 @@ def list_to_seperated_str(l, sep):
     return res
 
 def output_asm_be_parse_fn(decode_scope, toppat, yaml):
-    reg_fields = yaml['decoder']['reg_fields']
+    reg_src_fields = yaml['decoder']['reg_src_fields']
+    reg_dst_fields = yaml['decoder']['reg_dst_fields']
+    reg_fields = reg_src_fields + reg_dst_fields
     imm_fields = yaml['decoder']['imm_fields']
     label_fields = yaml['decoder']['label_fields']
     output("\n    def parse_instruction(self, t, insns):\n")

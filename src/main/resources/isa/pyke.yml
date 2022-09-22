@@ -7,7 +7,8 @@ isa:
 
 decoder:
   imm_fields: ["imm_i", "imm_s"]
-  reg_fields: ["rd", "rs1", "rs2"]
+  reg_src_fields: ["rs1", "rs2"]
+  reg_dst_fields: ["rd"]
   label_fields: ["imm_l"]
 
 hw:
