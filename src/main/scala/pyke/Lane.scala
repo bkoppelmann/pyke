@@ -62,6 +62,8 @@ object BranchMemALULane {
   }
 }
 
+import InsnFieldExtractor._
+
 class Lane(has_bru:Boolean, has_lsu:Boolean)(implicit config:YamlConfig) extends Module {
   val io = IO(new LaneIO)
 
@@ -70,9 +72,9 @@ class Lane(has_bru:Boolean, has_lsu:Boolean)(implicit config:YamlConfig) extends
 
   val alu = Module(new ALUSimple)
 
-  val rd_addr  = io.insn(7,4)
-  val rs1_addr = io.insn(11,8)
-  val rs2_addr = io.insn(15,12)
+  val rd_addr  = InsnFieldExtractor.getDstRegAddr(io.insn, 0)
+  val rs1_addr = InsnFieldExtractor.getSrcRegAddr(io.insn, 0)
+  val rs2_addr = InsnFieldExtractor.getSrcRegAddr(io.insn, 1)
   val s_imm = rd_addr
 
   // Decode

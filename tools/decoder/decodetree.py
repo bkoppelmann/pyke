@@ -1424,11 +1424,49 @@ def prop_size(tree):
 def output_hw(decode_scope, toppat, yaml):
     output_autogen()
     output("package pyke\n")
+    output("import chisel3._\n")
     output("import chisel3.util.BitPat\n")
     output("object Instructions {\n")
     if len(allpatterns) != 0:
         toppat.output_hw(4, False, 0, 0, yaml)
     output("}\n")
+
+    output("\n\n")
+    output("object InsnFieldExtractor {\n")
+    output_hw_reg_ranges(4, "srcRegs", yaml['decoder']['reg_src_fields'])
+    output_hw_reg_ranges(4, "dstRegs", yaml['decoder']['reg_dst_fields'])
+    output_hw_reg_getter(4, "getSrcRegAddr", "srcRegs")
+    output_hw_reg_getter(4, "getDstRegAddr", "dstRegs")
+    output("}\n")
+
+
+def output_hw_reg_ranges(indent, name, regs):
+    ind = str_indent(indent)
+    reg_count = 0
+    output(ind, "val {} = Array(".format(name))
+    for n in fields.keys():
+        if n in regs:
+            field = fields[n]
+            min = field.pos
+            max = min + field.len - 1
+            if reg_count != 0:
+                output(", ")
+            output("({}, {})".format(max, min))
+            reg_count += 1
+
+    output(")\n")
+
+
+def output_hw_reg_getter(indent, name, array_name):
+    ind = str_indent(indent)
+    output(ind, "def {} (insn:UInt, index:Int) : UInt = {{\n".format(name))
+    ind = str_indent(indent+4)
+    output(ind, "val max = {}(index)._1\n".format(array_name))
+    output(ind, "val min = {}(index)._2\n".format(array_name))
+    output(ind, "insn(max, min)\n")
+    ind = str_indent(indent)
+    output(ind, "}\n")
+
 
 def output_asm_be(decode_scope, toppat, yaml):
     output_autogen_python()
