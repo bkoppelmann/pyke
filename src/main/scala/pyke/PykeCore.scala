@@ -16,7 +16,9 @@ class CoreIO()(implicit config:YamlConfig) extends Bundle {
 class PykeCore()(implicit config:YamlConfig) extends Module {
   val io: CoreIO = IO(new CoreIO())
 
-  val rf    = Module(new RegisterFile(4, 2)) // 2 readPorts per Lane, 1 writePort per Lane times 2 Lanes
+  val numReadPorts = config.isa.atomsPerInsn * 2
+  val numWritePorts = config.isa.atomsPerInsn
+  val rf    = Module(new RegisterFile(numReadPorts, numWritePorts)) // 2 readPorts per Lane, 1 writePort per Lane times 2 Lanes
   var lanes :List[Lane] = List()
 
   val pc = RegInit(0x8000L.U(config.isa.xLen.W))
