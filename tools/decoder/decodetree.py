@@ -225,11 +225,11 @@ class Field:
         qualifier = "int" if self.sign else "uint"
         return f'(Bits({qualifier}=self.{field}, length={self.len}).uint << {self.pos})'
 
-    def str_encode_sub(self, field, offset):
+    def str_encode_sub(self, field, offset, sign):
         mask = ((1 << self.len) - 1) << offset
         pos = self.pos - offset
-        qualifier = "int" if self.sign else "uint"
-        return f'(Bits({qualifier}=self.{field} & {mask}, length={self.len}).uint << {pos})'
+        qualifier = "int" if sign else "uint"
+        return f'((Bits({qualifier}=self.{field}, length={self.len}).uint & {mask})<< {pos})'
 
     def __eq__(self, other):
         return self.sign == other.sign and self.mask == other.mask
@@ -272,7 +272,7 @@ class MultiField:
         enc = []
         pos = 0
         for f in reversed(self.subs):
-            enc.append(f.str_encode_sub(field, pos))
+            enc.append(f.str_encode_sub(field, pos, self.sign))
             pos += f.len
 
         return " | ".join(enc)
