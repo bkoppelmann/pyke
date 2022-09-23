@@ -1,9 +1,11 @@
 AS=python3 $(BASE_DIR)/tools/asm/asm.py
 
-TEST_BUILD_DIR = $(SIM_DIR)/tests
-TEST_DIR = $(BASE_DIR)/sw/asm/
+TEST_BUILD_DIR = $(SIM_DIR)/tests/$(ATOM_PER_INSN)Lane
+TEST_DIR = $(BASE_DIR)/sw/asm/$(ATOM_PER_INSN)Lane
 
-VLIW_LEN = $(shell $(BASE_DIR)/scripts/vliw_len.py $(CONFIG))
+ATOM_LEN = $(shell $(GET_CONFIG_VAR) isa.atomLen)
+ATOM_PER_INSN =	$(shell $(GET_CONFIG_VAR) isa.atomPerInsn)
+VLIW_LEN = $$(($(ATOM_LEN) * $(ATOM_PER_INSN) / 8))
 
 TESTS = $(shell cd $(TEST_DIR) && find . -iname "*.s")
 TEST_VCD = $(addprefix $(TEST_BUILD_DIR)/,$(patsubst %.S, %.vcd, $(TESTS)))

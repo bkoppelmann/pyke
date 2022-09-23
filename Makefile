@@ -14,6 +14,8 @@ CONFIG = $(ISA_DIR)/$(ISA).yml
 DECODETREE = python3 $(BASE_DIR)/tools/decoder/decodetree.py
 DECODETREE_FILE = $(ISA_DIR)/$(ISA).decode
 
+GET_CONFIG_VAR = $(BASE_DIR)/scripts/get_config_var.py $(CONFIG)
+
 TOP_MODULE = PykeTop
 
 SCALA_SRCS = $(shell find $(SRC_DIR) -iname "*.scala")
