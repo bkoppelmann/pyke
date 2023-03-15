@@ -6,7 +6,7 @@ import config.YamlConfig
 
 class DebugOffChipIO()(implicit config:YamlConfig) extends Bundle {
     val imem_addr = Input(UInt(config.isa.xLen.W))
-    val imem_val  = Input(UInt(config.isa.insnLen.W))
+    val imem_val  = Vec(config.isa.atomsPerInsn, Input(UInt(config.isa.atomLen.W)))
     val fetch_en  = Input(Bool())
 }
 class DebugIO()(implicit config:YamlConfig) extends Bundle {
@@ -24,7 +24,7 @@ class DebugModule()(implicit config:YamlConfig) extends Module {
     io.imem.req.valid     := true.B
     io.imem.req.wr        := true.B
     io.imem.req.wr_mask   := Seq.fill(config.isa.insnLen / 8)(true.B)
-    io.imem.req.data      := io.off.imem_val
+    io.imem.req.data      := io.off.imem_val.asUInt
 
     io.imem.resp := DontCare
 }

@@ -9,7 +9,7 @@ SBT_FLAGS = -ivy $(BASE_DIR)/.ivy2
 VERILATOR ?= verilator
 VERILOG_TOP = $(GEN_DIR)/PykeTop.v
 
-ISA ?= pyke32
+ISA ?= pyke32_4Lane
 CONFIG = $(ISA_DIR)/$(ISA).yml
 DECODETREE = python3 $(BASE_DIR)/tools/decoder/decodetree.py
 DECODETREE_FILE = $(ISA_DIR)/$(ISA).decode

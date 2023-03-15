@@ -1,0 +1,15 @@
+isa:
+  atomLen: 32
+  atomPerInsn: 4
+
+  xLen: 32
+  numRegsWithZero: 32
+
+decoder:
+  imm_fields: ["imm_i", "imm_s"]
+  reg_src_fields: ["rs1", "rs2"]
+  reg_dst_fields: ["rd"]
+  label_fields: ["imm_l"]
+
+hw:
+  lanes: ["BranchALULane", "MemALULane", "MemALULane", "MemALULane"]
