@@ -76,10 +76,14 @@ void preload_imem(VTop *top, VerilatedVcdC *tfp, char* path, int insn_len)
     top->io_debug_imem_addr = 0x8000;
     cycle_clock(top, tfp);
 
+    assert(insn_len % 8 == 0);
+    uint num_bytes = insn_len / 8;
     while ((read = getline(&line, &len, f)) != -1) {
-        top->io_debug_imem_addr += insn_len;
-        top->io_debug_imem_val = strtoul(line, NULL, 16);
-        cycle_clock(top, tfp);
+        for (int b = 0; b < num_bytes; b++) {
+            top->io_debug_imem_addr += 1;
+            top->io_debug_imem_val = strtoul(line, NULL, 16);
+            cycle_clock(top, tfp);
+        }
     }
     top->io_debug_fetch_en = 1;
 
