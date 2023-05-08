@@ -1497,6 +1497,7 @@ def output_asm_be(decode_scope, toppat, yaml):
     output("\n")
 
     output(str_indent(8), "self.{} = {}\n".format("atomLen", yaml['isa']['atomLen']))
+    output(str_indent(8), "self.{} = {}\n".format("atomPerInsn", yaml['isa']['atomPerInsn']))
     output_asm_be_parse_fn(decode_scope, toppat, yaml)
     output_asm_be_insn_class(decode_scope, toppat)
     output_asm_be_insn_arg_classes(decode_scope, toppat, yaml)

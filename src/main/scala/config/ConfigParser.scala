@@ -38,6 +38,7 @@ class YamlIsaConfig (@JsonProperty("atomLen") _atomLen: Int,
   val insnLen = atomLen * atomsPerInsn
   val pcIncr = insnLen / 8
   val insnLenBytes = insnLen / 8
+  val insnLenBits = insnLen
   val xLen = _xLen
   val numRegs = _numRegsWithZero-1
   val regAddrSize = log2Ceil(_numRegsWithZero)

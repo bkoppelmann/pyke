@@ -18,13 +18,13 @@ class DebugIO()(implicit config:YamlConfig) extends Bundle {
 class DebugModule()(implicit config:YamlConfig) extends Module {
     val io = IO(new DebugIO())
 
-    val deser = Module(new Deserializer(inputSize=8, outputSize=config.isa.insnLenBytes))
+    val deser = Module(new Deserializer(inputSize=8, outputSize=config.isa.insnLenBits))
     deser.io.in := io.off.imem_val.asUInt
 
     io.cpu_fetch_en := io.off.fetch_en
 
     io.imem.req.addr      := io.off.imem_addr >> log2Ceil(config.isa.insnLenBytes)
-    io.imem.req.valid     := deser.io.valid
+    io.imem.req.valid     := deser.io.valid & ~io.cpu_fetch_en
     io.imem.req.wr        := true.B
     io.imem.req.wr_mask   := Seq.fill(config.isa.insnLen / 8)(true.B)
     io.imem.req.data      := deser.io.out

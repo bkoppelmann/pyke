@@ -12,6 +12,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <getopt.h>
+#include <iostream>
+#include <sstream>
+#include <vector>
 
 #include "VPykeTop.h"
 #define VTop VPykeTop
@@ -55,6 +58,18 @@ int verbose_printf( const char *fmt, ...)
     return ret;
 }
 
+
+std::vector<std::string> split (const std::string &s, char delim) {
+    std::vector<std::string> result;
+    std::stringstream ss (s);
+    std::string item;
+
+    while (getline (ss, item, delim)) {
+        result.push_back (item);
+    }
+    return result;
+}
+
 void preload_imem(VTop *top, VerilatedVcdC *tfp, char* path, int insn_len)
 {
     FILE *f = fopen(path, "r");
@@ -79,11 +94,12 @@ void preload_imem(VTop *top, VerilatedVcdC *tfp, char* path, int insn_len)
     assert(insn_len % 8 == 0);
     uint num_bytes = insn_len / 8;
     while ((read = getline(&line, &len, f)) != -1) {
-        for (int b = 0; b < num_bytes; b++) {
-            top->io_debug_imem_addr += 1;
-            top->io_debug_imem_val = strtoul(line, NULL, 16);
-            cycle_clock(top, tfp);
-        }
+            std::vector<std::string> v = split(line, ' ');
+            for (auto i: v) {
+                top->io_debug_imem_addr += 1;
+                top->io_debug_imem_val = strtoul(i.c_str(), NULL, 16);
+                cycle_clock(top, tfp);
+            }
     }
     top->io_debug_fetch_en = 1;
 

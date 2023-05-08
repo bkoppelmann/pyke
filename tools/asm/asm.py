@@ -12,6 +12,7 @@ class VLIWInstruction:
         self.insns = insns
         self.addr  = addr
         self.insn_len = be.atomLen
+        self.num_insns = be.atomPerInsn
 
     def resolve_br_labels(self, all_labels):
         for insn in self.insns:
@@ -22,7 +23,10 @@ class VLIWInstruction:
         encoding = 0
         for num, insn in enumerate(self.insns):
             encoding = encoding | (insn.encode() << (num * self.insn_len))
-        return str(hex(encoding))
+        vliw_len = int(self.insn_len * self.num_insns / 8)
+        encoding_bytes = encoding.to_bytes(vliw_len, 'little')
+        encoding_str = str(encoding_bytes.hex(" "))
+        return encoding_str
 
 
 class LabelDef:
