@@ -96,11 +96,15 @@ void preload_imem(VTop *top, VerilatedVcdC *tfp, char* path, int insn_len)
     while ((read = getline(&line, &len, f)) != -1) {
             std::vector<std::string> v = split(line, ' ');
             for (auto i: v) {
-                top->io_debug_imem_addr += 1;
-                top->io_debug_imem_val = strtoul(i.c_str(), NULL, 16);
+                long val = strtoul(i.c_str(), NULL, 16);
+                printf("%02x ", val);
+                top->io_debug_imem_val = val;
                 cycle_clock(top, tfp);
             }
+            top->io_debug_imem_addr += insn_len;
+            printf("\n");
     }
+    cycle_clock(top, tfp);
     top->io_debug_fetch_en = 1;
 
     fclose(f);

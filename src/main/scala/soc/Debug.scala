@@ -22,8 +22,12 @@ class DebugModule()(implicit config:YamlConfig) extends Module {
     deser.io.in := io.off.imem_val.asUInt
 
     io.cpu_fetch_en := io.off.fetch_en
+    val next_mem_addr = Reg(UInt(config.isa.xLen.W))
+    when (deser.io.valid) {
+      next_mem_addr := io.off.imem_addr >> log2Ceil(config.isa.insnLenBytes)
+    }
 
-    io.imem.req.addr      := io.off.imem_addr >> log2Ceil(config.isa.insnLenBytes)
+    io.imem.req.addr      := next_mem_addr
     io.imem.req.valid     := deser.io.valid & ~io.cpu_fetch_en
     io.imem.req.wr        := true.B
     io.imem.req.wr_mask   := Seq.fill(config.isa.insnLen / 8)(true.B)
