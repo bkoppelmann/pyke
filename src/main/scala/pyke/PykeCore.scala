@@ -27,7 +27,7 @@ class PykeCore()(implicit config:YamlConfig) extends Module {
  /*
   * fetch
   */
- io.imem.req.addr    := pc >> log2Ceil(config.isa.insnLenBytes)
+  io.imem.req.addr    := pc >> log2Ceil(config.isa.insnLenBytes)
   io.imem.req.valid   := true.B
   io.imem.req.wr      := false.B
   io.imem.req.wr_mask := DontCare
@@ -37,6 +37,10 @@ class PykeCore()(implicit config:YamlConfig) extends Module {
   val zippedLanes = config.hw.lanes.zipWithIndex
   zippedLanes.foreach(createAndConnectLane)
 
+  when(io.fetch_en) {
+    printf("0x%x: (0x%x)\n", pc, insn)
+  }
+
   def createAndConnectLane(laneIndex: (String, Int)):Unit = {
     val (name, index) = laneIndex
 
@@ -45,6 +49,7 @@ class PykeCore()(implicit config:YamlConfig) extends Module {
 
         lane.suggestName(s"lane_$index")
         lane.io.insn := Mux(!io.fetch_en, NOP, extractAtom(index, insn))
+        lane.io.fetch_en := io.fetch_en
         lanes :+ lane
         lane.io.pc := pc
         lane.io.pc_plusX := Mux(!io.fetch_en, pc, pc_plusX)

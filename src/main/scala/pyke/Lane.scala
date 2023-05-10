@@ -16,6 +16,7 @@ class LaneIO()(implicit config:YamlConfig) extends Bundle {
   val dmem = Flipped(new ScratchPadPort(32, 32))
   val rfReadPorts = Flipped(Vec(2, new RFReadPortIO(16, 4)))
   val rfWritePort = Flipped(new RFWritePortIO(16, 4))
+  val fetch_en = Input(Bool())
 }
 
 object Lane {
@@ -76,7 +77,6 @@ class Lane(has_bru:Boolean, has_lsu:Boolean)(implicit config:YamlConfig) extends
   val rs1_addr = InsnFieldExtractor.getSrcRegAddr(io.insn, 0)
   val rs2_addr = InsnFieldExtractor.getSrcRegAddr(io.insn, 1)
   val s_imm = rd_addr
-
   // Decode
   decoder.io.insn := io.insn
 
@@ -86,6 +86,7 @@ class Lane(has_bru:Boolean, has_lsu:Boolean)(implicit config:YamlConfig) extends
 
   io.rfReadPorts(0).en      := (ctrl.op1_sel === OP1_RS1 || ctrl.op2_sel === OP2_RS2)
   io.rfReadPorts(1).en      := (ctrl.op1_sel === OP1_RS1 || ctrl.op2_sel === OP2_RS2)
+
 
   val rs1 = io.rfReadPorts(0).data
   val rs2 = io.rfReadPorts(1).data
@@ -148,6 +149,12 @@ class Lane(has_bru:Boolean, has_lsu:Boolean)(implicit config:YamlConfig) extends
   io.rfWritePort.addr := rd_addr
   io.rfWritePort.data := wb
   io.rfWritePort.en   := ctrl.wr_reg
+
+  when(io.fetch_en && ctrl.valid) {
+    printf("\t CTRL { op1 %d, op2 %d, alu_op %d, wr_reg %d, mem_op %d, mem_size %d, br %d, wb_sel %d }\n", ctrl.op1_sel, ctrl.op2_sel, ctrl.alu_op, ctrl.wr_reg, ctrl.mem_op, ctrl.mem_size, ctrl.br, ctrl.wb_sel)
+    printf("\t rd[%d] = 0x%x, rs1[%d] = 0x%x, rs2[%d] = 0x%x, imm_i = %d\n", rd_addr, wb, rs1_addr, rs1, rs2_addr, rs2, rs2_addr)
+  }
+
 
 
   def has_bru() : Boolean = has_bru
